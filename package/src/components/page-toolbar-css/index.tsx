@@ -437,6 +437,8 @@ export type PageFeedbackToolbarCSSProps = {
   onSessionCreated?: (sessionId: string) => void;
   /** Webhook URL to receive annotation events. */
   webhookUrl?: string;
+  /** Custom class name applied to the toolbar container. Use to adjust positioning or z-index. */
+  className?: string;
 };
 
 /** Alias for PageFeedbackToolbarCSSProps */
@@ -461,6 +463,7 @@ export function PageFeedbackToolbarCSS({
   sessionId: initialSessionId,
   onSessionCreated,
   webhookUrl,
+  className: userClassName,
 }: PageFeedbackToolbarCSSProps = {}) {
   const [isActive, setIsActive] = useState(false);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
@@ -3017,7 +3020,7 @@ export function PageFeedbackToolbarCSS({
     <div ref={portalWrapperRef} style={{ display: "contents" }}>
       {/* Toolbar */}
       <div
-        className={styles.toolbar}
+        className={`${styles.toolbar}${userClassName ? ` ${userClassName}` : ""}`}
         data-feedback-toolbar
         style={
           toolbarPosition
