@@ -67,7 +67,9 @@ export function generateOutput(
 
   annotations.forEach((a, i) => {
     if (detailLevel === 'compact') {
-      output += `${i + 1}. **${a.element}**: ${a.comment}`
+      output += `${i + 1}. **${a.element}**`
+      if (a.sourceFile) output += ` (${a.sourceFile})`
+      output += `: ${a.comment}`
       if (a.selectedText) {
         output += ` (re: "${a.selectedText.slice(0, 30)}${a.selectedText.length > 30 ? '...' : ''}")`
       }
@@ -88,12 +90,14 @@ export function generateOutput(
       if (a.computedStyles) output += `**Computed Styles:** ${a.computedStyles}\n`
       if (a.accessibility) output += `**Accessibility:** ${a.accessibility}\n`
       if (a.nearbyElements) output += `**Nearby Elements:** ${a.nearbyElements}\n`
-      if (a.reactComponents) output += `**React:** ${a.reactComponents}\n`
+      if (a.sourceFile) output += `**Source:** ${a.sourceFile}\n`
+      if (a.reactComponents) output += `**Vue:** ${a.reactComponents}\n`
       output += `**Feedback:** ${a.comment}\n\n`
     } else {
       output += `### ${i + 1}. ${a.element}\n`
       output += `**Location:** ${a.elementPath}\n`
-      if (a.reactComponents) output += `**React:** ${a.reactComponents}\n`
+      if (a.sourceFile) output += `**Source:** ${a.sourceFile}\n`
+      if (a.reactComponents) output += `**Vue:** ${a.reactComponents}\n`
       if (detailLevel === 'detailed') {
         if (a.cssClasses) output += `**Classes:** ${a.cssClasses}\n`
         if (a.boundingBox) {

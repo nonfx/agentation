@@ -21,6 +21,7 @@ export type Annotation = {
   isMultiSelect?: boolean; // true if created via drag selection
   isFixed?: boolean; // true if element has fixed/sticky positioning (marker stays fixed)
   reactComponents?: string; // React component hierarchy (e.g. "<App> <Dashboard> <Button>")
+  sourceFile?: string; // Source file path (e.g. "src/components/MyButton.vue:1")
   elementBoundingBoxes?: Array<{
     x: number;
     y: number;

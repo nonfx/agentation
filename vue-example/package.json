@@ -6,7 +6,7 @@
     "build": "vite build"
   },
   "dependencies": {
-    "agentation": "workspace:*",
+    "agentation": "file:..",
     "vue": "^3.5.0"
   },
   "devDependencies": {

@@ -33,6 +33,7 @@ const emit = defineEmits<{
   (e: 'update:isDarkMode', value: boolean): void
   (e: 'update:settings', value: Partial<ToolbarSettings>): void
   (e: 'update:settingsPage', value: 'main' | 'automations'): void
+  (e: 'hideToolbar'): void
 }>()
 
 function updateSetting<K extends keyof ToolbarSettings>(key: K, value: ToolbarSettings[K]) {
@@ -145,7 +146,7 @@ function cycleOutputDetail() {
               <ToolbarTooltip
                 :content="
                   !isLocalhost
-                    ? 'Disabled \u2014 production builds minify component names, making detection unreliable. Use on localhost in development mode.'
+                    ? 'Disabled \u2014 production builds strip component names, making detection unreliable. Enable in dev mode.'
                     : 'Include Vue component names in annotations'
                 "
                 :is-transitioning="isTransitioning"
@@ -223,7 +224,7 @@ function cycleOutputDetail() {
               </ToolbarTooltip>
             </span>
           </label>
-          <label :class="[styles.settingsToggle, styles.settingsToggleMarginBottom]">
+          <label :class="styles.settingsToggle">
             <input
               type="checkbox"
               id="blockInteractions"
@@ -238,6 +239,29 @@ function cycleOutputDetail() {
             </label>
             <span :class="[styles.toggleLabel, !isDarkMode ? styles.light : '']">
               Block page interactions
+            </span>
+          </label>
+          <label :class="[styles.settingsToggle, styles.settingsToggleMarginBottom]">
+            <input
+              type="checkbox"
+              id="hideToolbar"
+              :checked="false"
+              @change="emit('hideToolbar')"
+            />
+            <label
+              :class="styles.customCheckbox"
+              for="hideToolbar"
+            />
+            <span :class="[styles.toggleLabel, !isDarkMode ? styles.light : '']">
+              Hide until restart
+              <ToolbarTooltip
+                content="Hide the toolbar for the rest of this browser session. Reload or open a new tab to bring it back."
+                :is-transitioning="isTransitioning"
+              >
+                <span :class="[styles.helpIcon, styles.helpIconNudge2]">
+                  <IconHelp :size="20" />
+                </span>
+              </ToolbarTooltip>
             </span>
           </label>
         </div>

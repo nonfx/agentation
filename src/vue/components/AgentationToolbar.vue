@@ -26,6 +26,8 @@ import {
 import {
   loadAnnotations,
   saveAnnotations,
+  loadToolbarHidden,
+  saveToolbarHidden,
 } from '../../core/utils/storage'
 import {
   freeze as freezeAll,
@@ -34,6 +36,7 @@ import {
   originalSetInterval,
 } from '../../core/utils/freeze-animations'
 import { getVueComponentName } from '../utils/vue-detection'
+import { getSourceLocation } from '../utils/vue-source-location'
 
 import styles from '../../core/styles/page-toolbar.module.scss'
 
@@ -105,6 +108,7 @@ export type DemoAnnotation = {
 // =============================================================================
 
 const props = withDefaults(defineProps<{
+  className?: string
   demoAnnotations?: DemoAnnotation[]
   demoDelay?: number
   enableDemoMode?: boolean
@@ -195,8 +199,13 @@ const sendState = ref<'idle' | 'sending' | 'sent' | 'failed'>('idle')
 const cleared = ref(false)
 const isClearing = ref(false)
 const hoveredMarkerId = ref<string | null>(null)
-const tooltipExitingId = ref<string | null>(null)
 const hoveredTargetElement = ref<HTMLElement | null>(null)
+const isToolbarHidden = ref(false)
+const isToolbarHiding = ref(false)
+const tooltipSessionActive = ref(false)
+let tooltipSessionTimerRef: ReturnType<typeof setTimeout> | null = null
+const portalWrapperRef = ref<HTMLDivElement | null>(null)
+const stopBubble = (e: Event) => e.stopPropagation()
 const hoveredTargetElements = ref<HTMLElement[]>([])
 const deletingMarkerId = ref<string | null>(null)
 const renumberFrom = ref<number | null>(null)
@@ -343,7 +352,7 @@ const hasAnnotations = computed(() => annotations.value.length > 0)
 const shouldShowMarkers = computed(() => isActive.value && showMarkers.value)
 
 const visibleAnnotations = computed(() =>
-  annotations.value.filter((a) => !exitingMarkers.value.has(a.id)),
+  annotations.value.filter((a) => !exitingMarkers.value.has(a.id) && isRenderableAnnotation(a)),
 )
 const exitingAnnotationsList = computed(() =>
   annotations.value.filter((a) => exitingMarkers.value.has(a.id)),
@@ -412,6 +421,58 @@ function showTooltipsAgain() {
 }
 
 // =============================================================================
+// Hide toolbar temporarily (until page restart)
+// =============================================================================
+
+function hideToolbarTemporarily() {
+  isToolbarHiding.value = true
+  originalSetTimeout(() => {
+    isToolbarHidden.value = true
+    isToolbarHiding.value = false
+    saveToolbarHidden(true)
+  }, 400)
+}
+
+// =============================================================================
+// Tooltip session (instant tooltips after initial hover)
+// =============================================================================
+
+function handleControlsMouseEnter() {
+  tooltipSessionTimerRef = originalSetTimeout(() => {
+    tooltipSessionActive.value = true
+  }, 850)
+}
+
+function handleControlsMouseLeave() {
+  if (tooltipSessionTimerRef) {
+    clearTimeout(tooltipSessionTimerRef)
+    tooltipSessionTimerRef = null
+  }
+  tooltipSessionActive.value = false
+  showTooltipsAgain()
+}
+
+// =============================================================================
+// Filter renderable annotations
+// =============================================================================
+
+function isRenderableAnnotation(a: Annotation): boolean {
+  return a.status !== 'resolved' && a.status !== 'dismissed'
+}
+
+// =============================================================================
+// Source file detection helper
+// =============================================================================
+
+function getSourceFileForElement(element: HTMLElement): string | undefined {
+  const result = getSourceLocation(element)
+  if (result.found && result.source) {
+    return `${result.source.fileName}:${result.source.lineNumber}`
+  }
+  return undefined
+}
+
+// =============================================================================
 // Save annotations to localStorage
 // =============================================================================
 
@@ -467,6 +528,7 @@ function addAnnotation(comment: string) {
     elementBoundingBoxes: pa.elementBoundingBoxes,
     drawingIndex: pa.drawingIndex,
     strokeId: pa.strokeId,
+    sourceFile: pa.sourceFile,
     ...(props.endpoint && currentSessionId.value
       ? {
           sessionId: currentSessionId.value,
@@ -908,10 +970,6 @@ async function sendToWebhook() {
 
 function handleMarkerHover(annotation: Annotation | null) {
   if (!annotation) {
-    if (hoveredMarkerId.value) {
-      tooltipExitingId.value = hoveredMarkerId.value
-      originalSetTimeout(() => { tooltipExitingId.value = null }, 100)
-    }
     hoveredMarkerId.value = null
     hoveredTargetElement.value = null
     hoveredTargetElements.value = []
@@ -919,7 +977,6 @@ function handleMarkerHover(annotation: Annotation | null) {
     return
   }
 
-  tooltipExitingId.value = null
   hoveredMarkerId.value = annotation.id
 
   if (annotation.drawingIndex != null && annotation.drawingIndex < drawStrokes.value.length) {
@@ -994,6 +1051,7 @@ function createMultiSelectPendingAnnotation() {
       cssClasses: getElementClasses(firstEl),
       nearbyText: getNearbyText(firstEl),
       reactComponents: firstItem.reactComponents,
+      sourceFile: getSourceFileForElement(firstEl),
     }
   } else {
     const bounds = {
@@ -1033,6 +1091,7 @@ function createMultiSelectPendingAnnotation() {
       nearbyElements: getNearbyElements(firstEl),
       cssClasses: getElementClasses(firstEl),
       nearbyText: getNearbyText(firstEl),
+      sourceFile: getSourceFileForElement(firstEl),
     }
   }
 
@@ -1283,6 +1342,7 @@ function handleClick(e: MouseEvent) {
         cssClasses, isFixed: elIsFixed, fullPath, accessibility, computedStyles: computedStylesStr,
         computedStylesObj, nearbyElements, reactComponents: reactComponents ?? undefined,
         targetElement: elementUnder ?? undefined, drawingIndex: strokeIdx, strokeId: stroke.id,
+        sourceFile: elementUnder ? getSourceFileForElement(elementUnder) : undefined,
       }
       clearHover()
       hoveredDrawingIdx.value = null
@@ -1347,6 +1407,7 @@ function handleClick(e: MouseEvent) {
     computedStyles: getForensicComputedStyles(elementUnder), computedStylesObj: getDetailedComputedStyles(elementUnder),
     nearbyElements: getNearbyElements(elementUnder), reactComponents: reactComponents ?? undefined,
     targetElement: elementUnder,
+    sourceFile: getSourceFileForElement(elementUnder),
   }
   clearHover()
 }
@@ -1413,6 +1474,7 @@ function handleDragMouseUp(e: MouseEvent) {
       computedStyles: getForensicComputedStyles(firstElement), computedStylesObj: getDetailedComputedStyles(firstElement),
       nearbyElements: getNearbyElements(firstElement), cssClasses: getElementClasses(firstElement),
       nearbyText: getNearbyText(firstElement),
+      sourceFile: getSourceFileForElement(firstElement),
     }
   } else {
     const width = Math.abs(result.right - result.left)
@@ -1446,9 +1508,9 @@ function handleToolbarDragMove(e: MouseEvent) {
     let newX = dragStartPos.value.toolbarX + deltaX
     let newY = dragStartPos.value.toolbarY + deltaY
     const padding = 20
-    const wrapperWidth = 337
+    const wrapperWidth = 297
     const toolbarHeight = 44
-    const contentWidth = isActive.value ? (connectionStatus.value === 'connected' ? 337 : 297) : 44
+    const contentWidth = isActive.value ? (connectionStatus.value === 'connected' ? 297 : 257) : 44
     const contentOffset = wrapperWidth - contentWidth
     const minX = padding - contentOffset
     const maxX = window.innerWidth - padding - wrapperWidth
@@ -1608,6 +1670,7 @@ function setupDrawCanvasListeners() {
         isFixed, fullPath, accessibility, computedStyles: computedStylesStr, computedStylesObj,
         nearbyElements, reactComponents: reactComponents ?? undefined,
         targetElement: centerEl ?? undefined, drawingIndex: newStrokeIdx, strokeId: newStrokeId,
+        sourceFile: centerEl ? getSourceFileForElement(centerEl) : undefined,
       }
       clearHover()
     }
@@ -1692,7 +1755,7 @@ watch(
 function constrainPosition() {
   if (!toolbarPosition.value) return
   const padding = 20
-  const wrapperWidth = 337
+  const wrapperWidth = 297
   const toolbarHeight = 44
   const contentWidth = isActive.value ? (connectionStatus.value === 'connected' ? 297 : 257) : 44
   const contentOffset = wrapperWidth - contentWidth
@@ -1716,6 +1779,20 @@ onMounted(() => {
   scrollY.value = window.scrollY
   const stored = loadAnnotations<Annotation>(pathname)
   annotations.value = stored
+
+  // Load toolbar hidden state from session storage
+  if (loadToolbarHidden()) {
+    isToolbarHidden.value = true
+  }
+
+  // Portal event isolation: stop toolbar events from bubbling to host page click-outside handlers
+  // Attach on the portal wrapper itself (bubble phase) so events still reach toolbar children
+  const portalEl = portalWrapperRef.value
+  if (portalEl) {
+    portalEl.addEventListener('mousedown', stopBubble)
+    portalEl.addEventListener('click', stopBubble)
+    portalEl.addEventListener('pointerdown', stopBubble)
+  }
 
   // Listeners
   window.addEventListener('scroll', handleScroll, { passive: true })
@@ -1790,6 +1867,12 @@ onUnmounted(() => {
   window.removeEventListener('resize', constrainPosition)
   if (scrollTimeoutId) clearTimeout(scrollTimeoutId)
   if (cleanupDrawListeners) cleanupDrawListeners()
+  // Portal event isolation cleanup
+  if (portalWrapperRef.value) {
+    portalWrapperRef.value.removeEventListener('mousedown', stopBubble)
+    portalWrapperRef.value.removeEventListener('click', stopBubble)
+    portalWrapperRef.value.removeEventListener('pointerdown', stopBubble)
+  }
   removeCursorStyles()
   unfreezeAll()
 })
@@ -1815,7 +1898,9 @@ function getActiveButtonStyle(active: boolean, color: string): Record<string, st
 
 <template>
   <Teleport to="body">
+    <div ref="portalWrapperRef" style="display: contents">
     <!-- Toolbar -->
+    <template v-if="!isToolbarHidden">
     <div
       :class="styles.toolbar"
       data-feedback-toolbar
@@ -1825,10 +1910,12 @@ function getActiveButtonStyle(active: boolean, color: string): Record<string, st
       <div
         :class="[
           styles.toolbarContainer,
+          className,
           !isDarkMode ? styles.light : '',
           isActive ? styles.expanded : styles.collapsed,
           showEntranceAnimation ? styles.entrance : '',
           isDraggingToolbar ? styles.dragging : '',
+          isToolbarHiding ? styles.hiding : '',
           !settings.webhooksEnabled && (isValidUrl(settings.webhookUrl) || isValidUrl(webhookUrl || '')) ? styles.serverConnected : '',
         ]"
         @click="!isActive ? (getJustFinishedToolbarDrag() ? (setJustFinishedToolbarDrag(false), $event.preventDefault()) : (isActive = true)) : undefined"
@@ -1857,8 +1944,10 @@ function getActiveButtonStyle(active: boolean, color: string): Record<string, st
             isActive ? styles.visible : styles.hidden,
             toolbarPosition && toolbarPosition.y < 100 ? styles.tooltipBelow : '',
             tooltipsHidden || showSettings ? styles.tooltipsHidden : '',
+            tooltipSessionActive ? styles.tooltipsInSession : '',
           ]"
-          @mouseleave="showTooltipsAgain"
+          @mouseenter="handleControlsMouseEnter"
+          @mouseleave="handleControlsMouseLeave"
         >
           <div :class="[styles.buttonWrapper, toolbarPosition && toolbarPosition.x < 120 ? styles.buttonWrapperAlignLeft : '']">
             <button
@@ -1918,7 +2007,7 @@ function getActiveButtonStyle(active: boolean, color: string): Record<string, st
           </div>
 
           <!-- Send button -->
-          <div :class="[styles.buttonWrapper, styles.sendButtonWrapper, !settings.webhooksEnabled && (isValidUrl(settings.webhookUrl) || isValidUrl(webhookUrl || '')) ? styles.sendButtonVisible : '']">
+          <div :class="[styles.buttonWrapper, styles.sendButtonWrapper, isActive && !settings.webhooksEnabled && (isValidUrl(settings.webhookUrl) || isValidUrl(webhookUrl || '')) ? styles.sendButtonVisible : '']">
             <button
               :class="[styles.controlButton, !isDarkMode ? styles.light : '', sendState === 'sent' || sendState === 'failed' ? styles.statusShowing : '']"
               :disabled="!hasAnnotations || (!isValidUrl(settings.webhookUrl) && !isValidUrl(webhookUrl || '')) || sendState === 'sending'"
@@ -2001,6 +2090,7 @@ function getActiveButtonStyle(active: boolean, color: string): Record<string, st
           @update:is-dark-mode="isDarkMode = $event"
           @update:settings="Object.assign(settings, $event)"
           @update:settings-page="settingsPage = $event"
+          @hide-toolbar="hideToolbarTemporarily"
         />
       </div>
     </div>
@@ -2031,11 +2121,9 @@ function getActiveButtonStyle(active: boolean, color: string): Record<string, st
           :markers-exiting="markersExiting"
           :is-clearing="isClearing"
           :needs-enter-animation="!animatedMarkers.has(annotation.id)"
-          :animated-markers-size="animatedMarkers.size"
           :is-fixed="false"
           :renumber-from="renumberFrom"
           :is-dark-mode="isDarkMode"
-          :tooltip-exiting-id="tooltipExitingId"
           @mouseenter="!markersExiting && annotation.id !== recentlyAddedId && handleMarkerHover(annotation)"
           @mouseleave="handleMarkerHover(null)"
           @click="!markersExiting && (settings.markerClickBehavior === 'delete' ? deleteAnnotation(annotation.id) : startEditAnnotation(annotation))"
@@ -2074,11 +2162,9 @@ function getActiveButtonStyle(active: boolean, color: string): Record<string, st
           :markers-exiting="markersExiting"
           :is-clearing="isClearing"
           :needs-enter-animation="!animatedMarkers.has(annotation.id)"
-          :animated-markers-size="animatedMarkers.size"
           :is-fixed="true"
           :renumber-from="renumberFrom"
           :is-dark-mode="isDarkMode"
-          :tooltip-exiting-id="tooltipExitingId"
           @mouseenter="!markersExiting && annotation.id !== recentlyAddedId && handleMarkerHover(annotation)"
           @mouseleave="handleMarkerHover(null)"
           @click="!markersExiting && (settings.markerClickBehavior === 'delete' ? deleteAnnotation(annotation.id) : startEditAnnotation(annotation))"
@@ -2270,6 +2356,8 @@ function getActiveButtonStyle(active: boolean, color: string): Record<string, st
         <div :ref="(el: any) => dragSelect.setDragRectEl(el)" :class="styles.dragSelection" />
         <div :ref="(el: any) => dragSelect.setHighlightsContainerEl(el)" :class="styles.highlightsContainer" />
       </template>
+    </div>
+    </template>
     </div>
   </Teleport>
 </template>

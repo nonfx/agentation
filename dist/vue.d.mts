@@ -61,6 +61,7 @@ type Annotation = {
     isMultiSelect?: boolean;
     isFixed?: boolean;
     reactComponents?: string;
+    sourceFile?: string;
     elementBoundingBoxes?: Array<{
         x: number;
         y: number;

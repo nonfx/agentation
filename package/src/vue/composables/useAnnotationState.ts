@@ -29,6 +29,7 @@ export type PendingAnnotation = {
   targetElement?: HTMLElement
   drawingIndex?: number
   strokeId?: string
+  sourceFile?: string
 }
 
 export function useAnnotationState() {

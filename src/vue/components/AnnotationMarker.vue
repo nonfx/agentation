@@ -17,11 +17,9 @@ const props = defineProps<{
   markersExiting: boolean
   isClearing: boolean
   needsEnterAnimation: boolean
-  animatedMarkersSize: number
   isFixed: boolean
   renumberFrom: number | null
   isDarkMode: boolean
-  tooltipExitingId: string | null
 }>()
 
 const emit = defineEmits<{
@@ -53,21 +51,13 @@ const animDelay = computed(() => {
   if (props.markersExiting) {
     return `${(props.totalVisible - 1 - props.index) * 20}ms`
   }
-  if (props.needsEnterAnimation && props.animatedMarkersSize === 0) {
+  if (props.needsEnterAnimation) {
     return `${props.index * 20}ms`
   }
   return undefined
 })
 
-const showTooltip = computed(() =>
-  (props.isHovered || props.tooltipExitingId === props.annotation.id) && !props.isEditing
-)
-
-const tooltipAnimClass = computed(() =>
-  props.tooltipExitingId === props.annotation.id && !props.isHovered
-    ? styles.exit
-    : styles.enter
-)
+const showTooltip = computed(() => props.isHovered && !props.isEditing)
 
 function getTooltipPosition(): Record<string, string> {
   const tooltipMaxWidth = 200
@@ -131,7 +121,7 @@ function getTooltipPosition(): Record<string, string> {
       :class="[
         styles.markerTooltip,
         !isDarkMode ? styles.light : '',
-        tooltipAnimClass,
+        styles.enter,
       ]"
       :style="getTooltipPosition()"
     >

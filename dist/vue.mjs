@@ -1,4 +1,4 @@
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/AgentationToolbar.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/AgentationToolbar.vue
 import { defineComponent as _defineComponent41 } from "vue";
 import {
   ref as ref11,
@@ -529,6 +529,23 @@ function clearSessionId(pathname) {
   } catch {
   }
 }
+var TOOLBAR_HIDDEN_SESSION_KEY = `${SESSION_PREFIX}toolbar-hidden`;
+function loadToolbarHidden() {
+  if (typeof window === "undefined") return false;
+  try {
+    return sessionStorage.getItem(TOOLBAR_HIDDEN_SESSION_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+function saveToolbarHidden(hidden) {
+  if (typeof window === "undefined") return;
+  try {
+    if (hidden) sessionStorage.setItem(TOOLBAR_HIDDEN_SESSION_KEY, "1");
+    else sessionStorage.removeItem(TOOLBAR_HIDDEN_SESSION_KEY);
+  } catch {
+  }
+}
 
 // src/core/utils/freeze-animations.ts
 var EXCLUDE_ATTRS = [
@@ -1033,9 +1050,144 @@ function getVueComponentName(element, config) {
   return result;
 }
 
+// src/vue/utils/vue-source-location.ts
+function detectVueApp() {
+  if (typeof window === "undefined") {
+    return { isVue: false, isProduction: true };
+  }
+  const devToolsHook = window.__VUE_DEVTOOLS_GLOBAL_HOOK__;
+  if (devToolsHook && typeof devToolsHook === "object") {
+    const hook = devToolsHook;
+    const apps = hook.apps;
+    const hasApps = apps && apps.size > 0;
+    const vueVersion = hook.Vue ? hook.Vue.version : void 0;
+    const isProd = typeof window.__VUE_PROD_DEVTOOLS__ === "undefined";
+    if (hasApps || vueVersion) {
+      return {
+        isVue: true,
+        version: vueVersion || "3.x",
+        isProduction: false
+        // DevTools hook with apps means dev mode
+      };
+    }
+  }
+  const commonRoots = ["#app", "#root", "[data-v-app]"];
+  for (const selector of commonRoots) {
+    const el = document.querySelector(selector);
+    if (el && "__vue_app__" in el) {
+      const vueApp = el.__vue_app__;
+      const version = vueApp?.version;
+      return {
+        isVue: true,
+        version: version || "3.x",
+        // If __vue_app__ exists but no devtools hook, likely production
+        isProduction: !devToolsHook
+      };
+    }
+  }
+  if (document.body) {
+    for (const child of document.body.children) {
+      if ("__vueParentComponent" in child) {
+        return {
+          isVue: true,
+          version: "3.x",
+          isProduction: !devToolsHook
+        };
+      }
+    }
+  }
+  return { isVue: false, isProduction: true };
+}
+function getInstanceFromElement(element) {
+  const instance = element.__vueParentComponent;
+  return instance ?? null;
+}
+function findNearestInstance(element, maxDomDepth = 15) {
+  let current = element;
+  let depth = 0;
+  while (current && depth < maxDomDepth) {
+    const instance = getInstanceFromElement(current);
+    if (instance) {
+      return instance;
+    }
+    current = current.parentElement;
+    depth++;
+  }
+  return null;
+}
+function getComponentName(instance) {
+  if (!instance.type) return null;
+  return instance.type.__name || instance.type.name || instance.type.displayName || null;
+}
+function findFileSource(instance, maxDepth = 50) {
+  let current = instance;
+  let depth = 0;
+  while (current && depth < maxDepth) {
+    if (current.type?.__file) {
+      return {
+        fileName: current.type.__file,
+        componentName: getComponentName(current)
+      };
+    }
+    current = current.parent;
+    depth++;
+  }
+  return null;
+}
+function getSourceLocation(element) {
+  const vueInfo = detectVueApp();
+  if (!vueInfo.isVue) {
+    return {
+      found: false,
+      reason: "not-vue-app",
+      isVueApp: false,
+      isProduction: true
+    };
+  }
+  if (vueInfo.isProduction) {
+    return {
+      found: false,
+      reason: "production-build",
+      isVueApp: true,
+      isProduction: true
+    };
+  }
+  const instance = findNearestInstance(element);
+  if (!instance) {
+    return {
+      found: false,
+      reason: "no-instance",
+      isVueApp: true,
+      isProduction: false
+    };
+  }
+  const fileInfo = findFileSource(instance);
+  if (!fileInfo) {
+    return {
+      found: false,
+      reason: "no-file-info",
+      isVueApp: true,
+      isProduction: false
+    };
+  }
+  return {
+    found: true,
+    source: {
+      fileName: fileInfo.fileName,
+      // Vue does not expose line numbers at the DOM level
+      lineNumber: 1,
+      columnNumber: void 0,
+      componentName: fileInfo.componentName || void 0,
+      vueVersion: vueInfo.version
+    },
+    isVueApp: true,
+    isProduction: false
+  };
+}
+
 // src/core/styles/page-toolbar.module.scss
-var css = 'svg[fill=none] {\n  fill: none !important;\n}\n\n@keyframes page-toolbar-module__toolbarEnter___-WEE5 {\n  from {\n    opacity: 0;\n    transform: scale(0.5) rotate(90deg);\n  }\n  to {\n    opacity: 1;\n    transform: scale(1) rotate(0deg);\n  }\n}\n@keyframes page-toolbar-module__badgeEnter___tPtKD {\n  from {\n    opacity: 0;\n    transform: scale(0);\n  }\n  to {\n    opacity: 1;\n    transform: scale(1);\n  }\n}\n@keyframes page-toolbar-module__scaleIn___7i9nB {\n  from {\n    opacity: 0;\n    transform: scale(0.85);\n  }\n  to {\n    opacity: 1;\n    transform: scale(1);\n  }\n}\n@keyframes page-toolbar-module__scaleOut___Y1Ztx {\n  from {\n    opacity: 1;\n    transform: scale(1);\n  }\n  to {\n    opacity: 0;\n    transform: scale(0.85);\n  }\n}\n@keyframes page-toolbar-module__slideUp___496yM {\n  from {\n    opacity: 0;\n    transform: scale(0.85) translateY(8px);\n  }\n  to {\n    opacity: 1;\n    transform: scale(1) translateY(0);\n  }\n}\n@keyframes page-toolbar-module__slideDown___PRK4O {\n  from {\n    opacity: 1;\n    transform: scale(1) translateY(0);\n  }\n  to {\n    opacity: 0;\n    transform: scale(0.85) translateY(8px);\n  }\n}\n@keyframes page-toolbar-module__markerIn___A1Wxv {\n  0% {\n    opacity: 0;\n    transform: translate(-50%, -50%) scale(0.3);\n  }\n  100% {\n    opacity: 1;\n    transform: translate(-50%, -50%) scale(1);\n  }\n}\n@keyframes page-toolbar-module__markerOut___h-kr9 {\n  0% {\n    opacity: 1;\n    transform: translate(-50%, -50%) scale(1);\n  }\n  100% {\n    opacity: 0;\n    transform: translate(-50%, -50%) scale(0.3);\n  }\n}\n@keyframes page-toolbar-module__fadeIn___RJvi3 {\n  from {\n    opacity: 0;\n  }\n  to {\n    opacity: 1;\n  }\n}\n@keyframes page-toolbar-module__fadeOut___dAA6W {\n  from {\n    opacity: 1;\n  }\n  to {\n    opacity: 0;\n  }\n}\n@keyframes page-toolbar-module__tooltipIn___jMmfJ {\n  from {\n    opacity: 0;\n    transform: translateX(-50%) translateY(2px) scale(0.891);\n  }\n  to {\n    opacity: 1;\n    transform: translateX(-50%) translateY(0) scale(0.909);\n  }\n}\n@keyframes page-toolbar-module__tooltipOut___G4PUQ {\n  from {\n    opacity: 1;\n    transform: translateX(-50%) translateY(0) scale(0.909);\n  }\n  to {\n    opacity: 0;\n    transform: translateX(-50%) translateY(2px) scale(0.891);\n  }\n}\n@keyframes page-toolbar-module__hoverHighlightIn___f6l-B {\n  from {\n    opacity: 0;\n    transform: scale(0.98);\n  }\n  to {\n    opacity: 1;\n    transform: scale(1);\n  }\n}\n@keyframes page-toolbar-module__hoverTooltipIn___d-9u5 {\n  from {\n    opacity: 0;\n    transform: scale(0.95) translateY(4px);\n  }\n  to {\n    opacity: 1;\n    transform: scale(1) translateY(0);\n  }\n}\n@keyframes page-toolbar-module__settingsPanelIn___YMAX5 {\n  from {\n    opacity: 0;\n    transform: translateY(10px) scale(0.95);\n    filter: blur(5px);\n  }\n  to {\n    opacity: 1;\n    transform: translateY(0) scale(1);\n    filter: blur(0px);\n  }\n}\n@keyframes page-toolbar-module__settingsPanelOut___fv1FI {\n  from {\n    opacity: 1;\n    transform: translateY(0) scale(1);\n    filter: blur(0px);\n  }\n  to {\n    opacity: 0;\n    transform: translateY(20px) scale(0.95);\n    filter: blur(5px);\n  }\n}\n.page-toolbar-module__toolbar___sBwIb {\n  position: fixed;\n  bottom: 1.25rem;\n  right: 1.25rem;\n  width: 337px;\n  z-index: 100000;\n  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;\n  pointer-events: none;\n  transition: left 0s, top 0s, right 0s, bottom 0s;\n}\n\n.page-toolbar-module__toolbarContainer___x5R-d {\n  user-select: none;\n  margin-left: auto;\n  align-self: flex-end;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  background: #1a1a1a;\n  color: #fff;\n  border: none;\n  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.1);\n  pointer-events: auto;\n  cursor: grab;\n  transition: width 0.4s cubic-bezier(0.19, 1, 0.22, 1), transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);\n}\n.page-toolbar-module__toolbarContainer___x5R-d.page-toolbar-module__dragging___UIy-x {\n  transition: width 0.4s cubic-bezier(0.19, 1, 0.22, 1);\n  cursor: grabbing;\n}\n.page-toolbar-module__toolbarContainer___x5R-d.page-toolbar-module__entrance___gAJff {\n  animation: page-toolbar-module__toolbarEnter___-WEE5 0.5s cubic-bezier(0.34, 1.2, 0.64, 1) forwards;\n}\n.page-toolbar-module__toolbarContainer___x5R-d.page-toolbar-module__collapsed___Ep0vF {\n  width: 44px;\n  height: 44px;\n  border-radius: 22px;\n  padding: 0;\n  cursor: pointer;\n}\n.page-toolbar-module__toolbarContainer___x5R-d.page-toolbar-module__collapsed___Ep0vF svg {\n  margin-top: -1px;\n}\n.page-toolbar-module__toolbarContainer___x5R-d.page-toolbar-module__collapsed___Ep0vF:hover {\n  background: #2a2a2a;\n}\n.page-toolbar-module__toolbarContainer___x5R-d.page-toolbar-module__collapsed___Ep0vF:active {\n  transform: scale(0.95);\n}\n.page-toolbar-module__toolbarContainer___x5R-d.page-toolbar-module__expanded___HKRxf {\n  height: 44px;\n  border-radius: 1.5rem;\n  padding: 0.375rem;\n  width: 297px;\n}\n.page-toolbar-module__toolbarContainer___x5R-d.page-toolbar-module__expanded___HKRxf.page-toolbar-module__serverConnected___AgpbE {\n  width: 337px;\n}\n\n.page-toolbar-module__toggleContent___uFPh5 {\n  position: absolute;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  transition: opacity 0.1s cubic-bezier(0.19, 1, 0.22, 1);\n}\n.page-toolbar-module__toggleContent___uFPh5.page-toolbar-module__visible___0P5dl {\n  opacity: 1;\n  visibility: visible;\n  pointer-events: auto;\n}\n.page-toolbar-module__toggleContent___uFPh5.page-toolbar-module__hidden___rLRX- {\n  opacity: 0;\n  pointer-events: none;\n}\n\n.page-toolbar-module__controlsContent___3c09P {\n  display: flex;\n  align-items: center;\n  gap: 0.375rem;\n  transition: filter 0.8s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.8s cubic-bezier(0.19, 1, 0.22, 1), transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);\n}\n.page-toolbar-module__controlsContent___3c09P.page-toolbar-module__visible___0P5dl {\n  opacity: 1;\n  filter: blur(0px);\n  transform: scale(1);\n  visibility: visible;\n  pointer-events: auto;\n}\n.page-toolbar-module__controlsContent___3c09P.page-toolbar-module__hidden___rLRX- {\n  pointer-events: none;\n  opacity: 0;\n  filter: blur(10px);\n  transform: scale(0.4);\n}\n\n.page-toolbar-module__badge___d2Sgd {\n  position: absolute;\n  top: -13px;\n  right: -13px;\n  user-select: none;\n  min-width: 18px;\n  height: 18px;\n  padding: 0 5px;\n  border-radius: 9px;\n  background: #3c82f7;\n  color: white;\n  font-size: 0.625rem;\n  font-weight: 600;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.04);\n  opacity: 1;\n  transition: transform 0.3s ease, opacity 0.2s ease;\n  transform: scale(1);\n}\n.page-toolbar-module__badge___d2Sgd.page-toolbar-module__fadeOut___dAA6W {\n  opacity: 0;\n  transform: scale(0);\n  pointer-events: none;\n}\n.page-toolbar-module__badge___d2Sgd.page-toolbar-module__entrance___gAJff {\n  animation: page-toolbar-module__badgeEnter___tPtKD 0.3s cubic-bezier(0.34, 1.2, 0.64, 1) 0.4s both;\n}\n\n.page-toolbar-module__controlButton___ppLrv {\n  position: relative;\n  cursor: pointer !important;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  width: 34px;\n  height: 34px;\n  border-radius: 50%;\n  border: none;\n  background: transparent;\n  color: rgba(255, 255, 255, 0.85);\n  transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease, opacity 0.2s ease;\n}\n.page-toolbar-module__controlButton___ppLrv:hover:not(:disabled):not([data-active=true]):not([data-failed=true]):not([data-auto-sync=true]):not([data-error=true]):not([data-no-hover=true]) {\n  background: rgba(255, 255, 255, 0.12);\n  color: #fff;\n}\n.page-toolbar-module__controlButton___ppLrv:active:not(:disabled) {\n  transform: scale(0.92);\n}\n.page-toolbar-module__controlButton___ppLrv:disabled {\n  opacity: 0.35;\n  cursor: not-allowed;\n}\n.page-toolbar-module__controlButton___ppLrv[data-active=true] {\n  color: #3c82f7;\n  background: rgba(60, 130, 247, 0.25);\n}\n.page-toolbar-module__controlButton___ppLrv[data-error=true] {\n  color: #ff3b30;\n  background: rgba(255, 59, 48, 0.25);\n}\n.page-toolbar-module__controlButton___ppLrv[data-danger]:hover:not(:disabled):not([data-active=true]):not([data-failed=true]) {\n  background: rgba(255, 59, 48, 0.25);\n  color: #ff3b30;\n}\n.page-toolbar-module__controlButton___ppLrv[data-no-hover=true], .page-toolbar-module__controlButton___ppLrv.page-toolbar-module__statusShowing___F-Tku {\n  cursor: default !important;\n  pointer-events: none;\n  background: transparent !important;\n}\n.page-toolbar-module__controlButton___ppLrv[data-auto-sync=true] {\n  color: #34c759;\n  background: transparent;\n  cursor: default;\n}\n.page-toolbar-module__controlButton___ppLrv[data-failed=true] {\n  color: #ff3b30;\n  background: rgba(255, 59, 48, 0.25);\n}\n\n.page-toolbar-module__buttonBadge___ID4id {\n  position: absolute;\n  top: 0px;\n  right: 0px;\n  min-width: 16px;\n  height: 16px;\n  padding: 0 4px;\n  border-radius: 8px;\n  background: #3c82f7;\n  color: white;\n  font-size: 0.625rem;\n  font-weight: 600;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  box-shadow: 0 0 0 2px #1a1a1a, 0 1px 3px rgba(0, 0, 0, 0.2);\n  pointer-events: none;\n}\n.page-toolbar-module__buttonBadge___ID4id.page-toolbar-module__light___OkEHy {\n  box-shadow: 0 0 0 2px #fff, 0 1px 3px rgba(0, 0, 0, 0.2);\n}\n\n@keyframes page-toolbar-module__mcpIndicatorPulseConnected___0ghgC {\n  0%, 100% {\n    box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.5);\n  }\n  50% {\n    box-shadow: 0 0 0 5px rgba(52, 199, 89, 0);\n  }\n}\n@keyframes page-toolbar-module__mcpIndicatorPulseConnecting___kYfpu {\n  0%, 100% {\n    box-shadow: 0 0 0 0 rgba(245, 166, 35, 0.5);\n  }\n  50% {\n    box-shadow: 0 0 0 5px rgba(245, 166, 35, 0);\n  }\n}\n.page-toolbar-module__mcpIndicator___KqlFK {\n  position: absolute;\n  top: 3px;\n  right: 3px;\n  width: 6px;\n  height: 6px;\n  border-radius: 50%;\n  pointer-events: none;\n  transition: background 0.3s ease, opacity 0.15s ease, transform 0.15s ease;\n  opacity: 1;\n  transform: scale(1);\n}\n.page-toolbar-module__mcpIndicator___KqlFK.page-toolbar-module__connected___bd4g7 {\n  background: #34c759;\n  animation: page-toolbar-module__mcpIndicatorPulseConnected___0ghgC 2.5s ease-in-out infinite;\n}\n.page-toolbar-module__mcpIndicator___KqlFK.page-toolbar-module__connecting___l9kzm {\n  background: #f5a623;\n  animation: page-toolbar-module__mcpIndicatorPulseConnecting___kYfpu 1.5s ease-in-out infinite;\n}\n.page-toolbar-module__mcpIndicator___KqlFK.page-toolbar-module__hidden___rLRX- {\n  opacity: 0;\n  transform: scale(0);\n  animation: none;\n}\n\n@keyframes page-toolbar-module__connectionPulse___Mb8JU {\n  0%, 100% {\n    opacity: 1;\n    transform: scale(1);\n  }\n  50% {\n    opacity: 0.6;\n    transform: scale(0.9);\n  }\n}\n.page-toolbar-module__connectionIndicatorWrapper___xmyKM {\n  width: 8px;\n  height: 34px;\n  margin-left: 6px;\n  margin-right: 6px;\n}\n\n.page-toolbar-module__connectionIndicator___0gwMz {\n  position: relative;\n  width: 8px;\n  height: 8px;\n  border-radius: 50%;\n  opacity: 0;\n  transition: opacity 0.3s ease, background 0.3s ease;\n  cursor: default;\n}\n\n.page-toolbar-module__connectionIndicatorVisible___L-bAC {\n  opacity: 1;\n}\n\n.page-toolbar-module__connectionIndicatorConnected___I2ODc {\n  background: #34c759;\n  animation: page-toolbar-module__connectionPulse___Mb8JU 2.5s ease-in-out infinite;\n}\n\n.page-toolbar-module__connectionIndicatorDisconnected___s2kSH {\n  background: #ff3b30;\n  animation: none;\n}\n\n.page-toolbar-module__connectionIndicatorConnecting___IjG3P {\n  background: #f59e0b;\n  animation: page-toolbar-module__connectionPulse___Mb8JU 1s ease-in-out infinite;\n}\n\n.page-toolbar-module__buttonWrapper___Z2afJ {\n  position: relative;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n}\n.page-toolbar-module__buttonWrapper___Z2afJ:hover .page-toolbar-module__buttonTooltip___AetOW {\n  opacity: 1;\n  visibility: visible;\n  transform: translateX(-50%) scale(1);\n  transition-delay: 0.85s;\n}\n.page-toolbar-module__buttonWrapper___Z2afJ:has(.page-toolbar-module__controlButton___ppLrv:disabled):hover .page-toolbar-module__buttonTooltip___AetOW {\n  opacity: 0;\n  visibility: hidden;\n}\n\n.page-toolbar-module__sendButtonWrapper___naR5s {\n  width: 0;\n  opacity: 0;\n  overflow: hidden;\n  pointer-events: none;\n  margin-left: -0.375rem;\n  transition: width 0.4s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.3s cubic-bezier(0.19, 1, 0.22, 1), margin 0.4s cubic-bezier(0.19, 1, 0.22, 1);\n}\n.page-toolbar-module__sendButtonWrapper___naR5s .page-toolbar-module__controlButton___ppLrv {\n  transform: scale(0.8);\n  transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);\n}\n.page-toolbar-module__sendButtonWrapper___naR5s.page-toolbar-module__sendButtonVisible___3ItIp {\n  width: 34px;\n  opacity: 1;\n  overflow: visible;\n  pointer-events: auto;\n  margin-left: 0;\n}\n.page-toolbar-module__sendButtonWrapper___naR5s.page-toolbar-module__sendButtonVisible___3ItIp .page-toolbar-module__controlButton___ppLrv {\n  transform: scale(1);\n}\n\n.page-toolbar-module__buttonTooltip___AetOW {\n  position: absolute;\n  bottom: calc(100% + 14px);\n  left: 50%;\n  transform: translateX(-50%) scale(0.95);\n  padding: 6px 10px;\n  background: #1a1a1a;\n  color: rgba(255, 255, 255, 0.9);\n  font-size: 12px;\n  font-weight: 500;\n  border-radius: 8px;\n  white-space: nowrap;\n  opacity: 0;\n  visibility: hidden;\n  pointer-events: none;\n  z-index: 100001;\n  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);\n  transition: opacity 0.135s ease, transform 0.135s ease, visibility 0.135s ease;\n}\n.page-toolbar-module__buttonTooltip___AetOW::after {\n  content: "";\n  position: absolute;\n  top: calc(100% - 4px);\n  left: 50%;\n  transform: translateX(-50%) rotate(45deg);\n  width: 8px;\n  height: 8px;\n  background: #1a1a1a;\n  border-radius: 0 0 2px 0;\n}\n\n.page-toolbar-module__shortcut___dVvrO {\n  margin-left: 4px;\n  opacity: 0.5;\n}\n\n.page-toolbar-module__tooltipBelow___4zzOD .page-toolbar-module__buttonTooltip___AetOW {\n  bottom: auto;\n  top: calc(100% + 14px);\n  transform: translateX(-50%) scale(0.95);\n}\n.page-toolbar-module__tooltipBelow___4zzOD .page-toolbar-module__buttonTooltip___AetOW::after {\n  top: -4px;\n  bottom: auto;\n  border-radius: 2px 0 0 0;\n}\n\n.page-toolbar-module__tooltipBelow___4zzOD .page-toolbar-module__buttonWrapper___Z2afJ:hover .page-toolbar-module__buttonTooltip___AetOW {\n  transform: translateX(-50%) scale(1);\n}\n\n.page-toolbar-module__tooltipsHidden___1NAj0 .page-toolbar-module__buttonTooltip___AetOW {\n  opacity: 0 !important;\n  visibility: hidden !important;\n  transition: none !important;\n}\n\n.page-toolbar-module__tooltipVisible___Z9IMh,\n.page-toolbar-module__tooltipsHidden___1NAj0 .page-toolbar-module__tooltipVisible___Z9IMh {\n  opacity: 1 !important;\n  visibility: visible !important;\n  transform: translateX(-50%) scale(1) !important;\n  transition-delay: 0s !important;\n}\n\n.page-toolbar-module__buttonWrapperAlignLeft___fQ8G3 .page-toolbar-module__buttonTooltip___AetOW {\n  left: 50%;\n  transform: translateX(-12px) scale(0.95);\n}\n.page-toolbar-module__buttonWrapperAlignLeft___fQ8G3 .page-toolbar-module__buttonTooltip___AetOW::after {\n  left: 16px;\n}\n.page-toolbar-module__buttonWrapperAlignLeft___fQ8G3:hover .page-toolbar-module__buttonTooltip___AetOW {\n  transform: translateX(-12px) scale(1);\n}\n\n.page-toolbar-module__tooltipBelow___4zzOD .page-toolbar-module__buttonWrapperAlignLeft___fQ8G3 .page-toolbar-module__buttonTooltip___AetOW {\n  transform: translateX(-12px) scale(0.95);\n}\n.page-toolbar-module__tooltipBelow___4zzOD .page-toolbar-module__buttonWrapperAlignLeft___fQ8G3:hover .page-toolbar-module__buttonTooltip___AetOW {\n  transform: translateX(-12px) scale(1);\n}\n\n.page-toolbar-module__buttonWrapperAlignRight___mSVi3 .page-toolbar-module__buttonTooltip___AetOW {\n  left: 50%;\n  transform: translateX(calc(-100% + 12px)) scale(0.95);\n}\n.page-toolbar-module__buttonWrapperAlignRight___mSVi3 .page-toolbar-module__buttonTooltip___AetOW::after {\n  left: auto;\n  right: 8px;\n}\n.page-toolbar-module__buttonWrapperAlignRight___mSVi3:hover .page-toolbar-module__buttonTooltip___AetOW {\n  transform: translateX(calc(-100% + 12px)) scale(1);\n}\n\n.page-toolbar-module__tooltipBelow___4zzOD .page-toolbar-module__buttonWrapperAlignRight___mSVi3 .page-toolbar-module__buttonTooltip___AetOW {\n  transform: translateX(calc(-100% + 12px)) scale(0.95);\n}\n.page-toolbar-module__tooltipBelow___4zzOD .page-toolbar-module__buttonWrapperAlignRight___mSVi3:hover .page-toolbar-module__buttonTooltip___AetOW {\n  transform: translateX(calc(-100% + 12px)) scale(1);\n}\n\n.page-toolbar-module__divider___cL2DV {\n  width: 1px;\n  height: 12px;\n  background: rgba(255, 255, 255, 0.15);\n  margin: 0 0.125rem;\n}\n\n.page-toolbar-module__overlay___Zg2Lx {\n  position: fixed;\n  inset: 0;\n  z-index: 99997;\n  pointer-events: none;\n}\n.page-toolbar-module__overlay___Zg2Lx > * {\n  pointer-events: auto;\n}\n\n.page-toolbar-module__hoverHighlight___x-hcw {\n  position: fixed;\n  border: 2px solid rgba(60, 130, 247, 0.5);\n  border-radius: 4px;\n  pointer-events: none !important;\n  background: rgba(60, 130, 247, 0.04);\n  box-sizing: border-box;\n  will-change: opacity;\n  contain: layout style;\n}\n.page-toolbar-module__hoverHighlight___x-hcw.page-toolbar-module__enter___MokYX {\n  animation: page-toolbar-module__hoverHighlightIn___f6l-B 0.12s ease-out forwards;\n}\n\n.page-toolbar-module__multiSelectOutline___GtfT4 {\n  position: fixed;\n  border: 2px dashed rgba(52, 199, 89, 0.6);\n  border-radius: 4px;\n  pointer-events: none !important;\n  background: rgba(52, 199, 89, 0.05);\n  box-sizing: border-box;\n  will-change: opacity;\n}\n.page-toolbar-module__multiSelectOutline___GtfT4.page-toolbar-module__enter___MokYX {\n  animation: page-toolbar-module__fadeIn___RJvi3 0.15s ease-out forwards;\n}\n.page-toolbar-module__multiSelectOutline___GtfT4.page-toolbar-module__exit___6NIVt {\n  animation: page-toolbar-module__fadeOut___dAA6W 0.15s ease-out forwards;\n}\n\n.page-toolbar-module__singleSelectOutline___lDMOt {\n  position: fixed;\n  border: 2px solid rgba(60, 130, 247, 0.6);\n  border-radius: 4px;\n  pointer-events: none !important;\n  background: rgba(60, 130, 247, 0.05);\n  box-sizing: border-box;\n  will-change: opacity;\n}\n.page-toolbar-module__singleSelectOutline___lDMOt.page-toolbar-module__enter___MokYX {\n  animation: page-toolbar-module__fadeIn___RJvi3 0.15s ease-out forwards;\n}\n.page-toolbar-module__singleSelectOutline___lDMOt.page-toolbar-module__exit___6NIVt {\n  animation: page-toolbar-module__fadeOut___dAA6W 0.15s ease-out forwards;\n}\n\n.page-toolbar-module__hoverTooltip___YHQxN {\n  position: fixed;\n  font-size: 0.6875rem;\n  font-weight: 500;\n  color: #fff;\n  background: rgba(0, 0, 0, 0.85);\n  padding: 0.35rem 0.6rem;\n  border-radius: 0.375rem;\n  pointer-events: none !important;\n  white-space: nowrap;\n  max-width: 280px;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n.page-toolbar-module__hoverTooltip___YHQxN.page-toolbar-module__enter___MokYX {\n  animation: page-toolbar-module__hoverTooltipIn___d-9u5 0.1s ease-out forwards;\n}\n\n.page-toolbar-module__hoverReactPath___gsH0- {\n  font-size: 0.625rem;\n  color: rgba(255, 255, 255, 0.6);\n  margin-bottom: 0.15rem;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.page-toolbar-module__hoverElementName___9Wxnf {\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.page-toolbar-module__markersLayer___hXKyR {\n  position: absolute;\n  top: 0;\n  left: 0;\n  right: 0;\n  height: 0;\n  z-index: 99998;\n  pointer-events: none;\n}\n.page-toolbar-module__markersLayer___hXKyR > * {\n  pointer-events: auto;\n}\n\n.page-toolbar-module__fixedMarkersLayer___0QARr {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  z-index: 99998;\n  pointer-events: none;\n}\n.page-toolbar-module__fixedMarkersLayer___0QARr > * {\n  pointer-events: auto;\n}\n\n.page-toolbar-module__marker___c0doQ {\n  position: absolute;\n  width: 22px;\n  height: 22px;\n  background: #3c82f7;\n  color: white;\n  border-radius: 50%;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 0.6875rem;\n  font-weight: 600;\n  transform: translate(-50%, -50%) scale(1);\n  opacity: 1;\n  cursor: pointer;\n  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(0, 0, 0, 0.04);\n  user-select: none;\n  will-change: transform, opacity;\n  contain: layout style;\n  z-index: 1;\n}\n.page-toolbar-module__marker___c0doQ:hover {\n  z-index: 2;\n}\n.page-toolbar-module__marker___c0doQ:not(.page-toolbar-module__enter___MokYX):not(.page-toolbar-module__exit___6NIVt):not(.page-toolbar-module__clearing___aXE1v) {\n  transition: background-color 0.15s ease, transform 0.1s ease;\n}\n.page-toolbar-module__marker___c0doQ.page-toolbar-module__enter___MokYX {\n  animation: page-toolbar-module__markerIn___A1Wxv 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;\n}\n.page-toolbar-module__marker___c0doQ.page-toolbar-module__exit___6NIVt {\n  animation: page-toolbar-module__markerOut___h-kr9 0.2s ease-out both;\n  pointer-events: none;\n}\n.page-toolbar-module__marker___c0doQ.page-toolbar-module__clearing___aXE1v {\n  animation: page-toolbar-module__markerOut___h-kr9 0.15s ease-out both;\n  pointer-events: none;\n}\n.page-toolbar-module__marker___c0doQ:not(.page-toolbar-module__enter___MokYX):not(.page-toolbar-module__exit___6NIVt):not(.page-toolbar-module__clearing___aXE1v):hover {\n  transform: translate(-50%, -50%) scale(1.1);\n}\n.page-toolbar-module__marker___c0doQ.page-toolbar-module__pending___Ln-lV {\n  position: fixed;\n  background: #3c82f7;\n}\n.page-toolbar-module__marker___c0doQ.page-toolbar-module__fixed___U4mr3 {\n  position: fixed;\n}\n.page-toolbar-module__marker___c0doQ.page-toolbar-module__multiSelect___Z-PYZ {\n  background: #34c759;\n  width: 26px;\n  height: 26px;\n  border-radius: 6px;\n  font-size: 0.75rem;\n}\n.page-toolbar-module__marker___c0doQ.page-toolbar-module__multiSelect___Z-PYZ.page-toolbar-module__pending___Ln-lV {\n  background: #34c759;\n}\n.page-toolbar-module__marker___c0doQ.page-toolbar-module__hovered___2HwnW {\n  background: #ff3b30;\n}\n\n.page-toolbar-module__renumber___rVqlG {\n  display: block;\n  animation: page-toolbar-module__renumberRoll___zbFKe 0.2s ease-out;\n}\n\n@keyframes page-toolbar-module__renumberRoll___zbFKe {\n  0% {\n    transform: translateX(-40%);\n    opacity: 0;\n  }\n  100% {\n    transform: translateX(0);\n    opacity: 1;\n  }\n}\n.page-toolbar-module__markerTooltip___oBqwC {\n  position: absolute;\n  top: calc(100% + 10px);\n  left: 50%;\n  transform: translateX(-50%) scale(0.909);\n  z-index: 100002;\n  background: #1a1a1a;\n  padding: 8px 0.75rem;\n  border-radius: 0.75rem;\n  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;\n  font-weight: 400;\n  color: #fff;\n  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.08);\n  min-width: 120px;\n  max-width: 200px;\n  pointer-events: none;\n  cursor: default;\n}\n.page-toolbar-module__markerTooltip___oBqwC.page-toolbar-module__enter___MokYX {\n  animation: page-toolbar-module__tooltipIn___jMmfJ 0.1s ease-out forwards;\n}\n.page-toolbar-module__markerTooltip___oBqwC.page-toolbar-module__exit___6NIVt {\n  animation: page-toolbar-module__tooltipOut___G4PUQ 0.1s ease-out forwards;\n}\n\n.page-toolbar-module__markerQuote___9Qfoa {\n  display: block;\n  font-size: 12px;\n  font-style: italic;\n  color: rgba(255, 255, 255, 0.6);\n  margin-bottom: 0.3125rem;\n  line-height: 1.4;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.page-toolbar-module__markerNote___HOmyF {\n  display: block;\n  font-size: 13px;\n  font-weight: 400;\n  line-height: 1.4;\n  color: #fff;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  padding-bottom: 2px;\n}\n\n.page-toolbar-module__markerHint___rUwXR {\n  display: block;\n  font-size: 0.625rem;\n  font-weight: 400;\n  color: rgba(255, 255, 255, 0.6);\n  margin-top: 0.375rem;\n  white-space: nowrap;\n}\n\n.page-toolbar-module__settingsPanel___C28ZP {\n  position: absolute;\n  right: 5px;\n  bottom: calc(100% + 0.5rem);\n  z-index: 1;\n  overflow: hidden;\n  background: #1c1c1c;\n  border-radius: 1rem;\n  padding: 13px 0 16px;\n  min-width: 205px;\n  cursor: default;\n  opacity: 1;\n  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.04);\n  transition: background 0.25s ease, box-shadow 0.25s ease;\n}\n.page-toolbar-module__settingsPanel___C28ZP::before, .page-toolbar-module__settingsPanel___C28ZP::after {\n  content: "";\n  position: absolute;\n  top: 0;\n  bottom: 0;\n  width: 16px;\n  z-index: 2;\n  pointer-events: none;\n}\n.page-toolbar-module__settingsPanel___C28ZP::before {\n  left: 0;\n  background: linear-gradient(to right, #1c1c1c 0%, transparent 100%);\n}\n.page-toolbar-module__settingsPanel___C28ZP::after {\n  right: 0;\n  background: linear-gradient(to left, #1c1c1c 0%, transparent 100%);\n}\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsHeader___Vu98j,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsBrand___euQq5,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsBrandSlash___RxG4a,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsVersion___N-GPL,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsSection___kh4vw,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsLabel___Ai4Q-,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__cycleButton___uS15m,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__cycleDot___CW1tR,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__dropdownButton___qTm2f,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__toggleLabel___f3w7K,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__customCheckbox___X5b-y,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__sliderLabel___qK6W0,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__slider___XkOCz,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__helpIcon___PGlAb,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__themeToggle___vLtgF {\n  transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease;\n}\n.page-toolbar-module__settingsPanel___C28ZP.page-toolbar-module__enter___MokYX {\n  opacity: 1;\n  transform: translateY(0) scale(1);\n  filter: blur(0px);\n  transition: opacity 0.2s ease, transform 0.2s ease, filter 0.2s ease;\n}\n.page-toolbar-module__settingsPanel___C28ZP.page-toolbar-module__exit___6NIVt {\n  opacity: 0;\n  transform: translateY(8px) scale(0.95);\n  filter: blur(5px);\n  pointer-events: none;\n  transition: opacity 0.1s ease, transform 0.1s ease, filter 0.1s ease;\n}\n.page-toolbar-module__settingsPanel___C28ZP.page-toolbar-module__dark___fp8IT {\n  background: #1a1a1a;\n  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.08);\n}\n.page-toolbar-module__settingsPanel___C28ZP.page-toolbar-module__dark___fp8IT .page-toolbar-module__settingsLabel___Ai4Q- {\n  color: rgba(255, 255, 255, 0.6);\n}\n.page-toolbar-module__settingsPanel___C28ZP.page-toolbar-module__dark___fp8IT .page-toolbar-module__settingsOption___X1xKK {\n  color: rgba(255, 255, 255, 0.85);\n}\n.page-toolbar-module__settingsPanel___C28ZP.page-toolbar-module__dark___fp8IT .page-toolbar-module__settingsOption___X1xKK:hover {\n  background: rgba(255, 255, 255, 0.1);\n}\n.page-toolbar-module__settingsPanel___C28ZP.page-toolbar-module__dark___fp8IT .page-toolbar-module__settingsOption___X1xKK.page-toolbar-module__selected___MO3j6 {\n  background: rgba(255, 255, 255, 0.15);\n  color: #fff;\n}\n.page-toolbar-module__settingsPanel___C28ZP.page-toolbar-module__dark___fp8IT .page-toolbar-module__toggleLabel___f3w7K {\n  color: rgba(255, 255, 255, 0.85);\n}\n\n.page-toolbar-module__settingsPanelContainer___mjMeX {\n  overflow: visible;\n  position: relative;\n  display: flex;\n  padding: 0 1rem;\n}\n.page-toolbar-module__settingsPanelContainer___mjMeX.page-toolbar-module__transitioning___tljBd {\n  overflow-x: clip;\n  overflow-y: visible;\n}\n\n.page-toolbar-module__settingsPage___D45Js {\n  min-width: 100%;\n  flex-shrink: 0;\n  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease-out;\n  opacity: 1;\n}\n\n.page-toolbar-module__settingsPage___D45Js.page-toolbar-module__slideLeft___Tz-ss {\n  transform: translateX(-100%);\n  opacity: 0;\n}\n\n.page-toolbar-module__automationsPage___Qf3xs {\n  position: absolute;\n  top: 0;\n  left: 100%;\n  width: 100%;\n  height: 100%;\n  padding: 3px 1rem 0;\n  box-sizing: border-box;\n  display: flex;\n  flex-direction: column;\n  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease-out 0.1s;\n  opacity: 0;\n}\n\n.page-toolbar-module__automationsPage___Qf3xs.page-toolbar-module__slideIn___Fhz3M {\n  transform: translateX(-100%);\n  opacity: 1;\n}\n\n.page-toolbar-module__settingsNavLink___QulVN {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  width: 100%;\n  padding: 0;\n  border: none;\n  background: transparent;\n  font-family: inherit;\n  font-size: 0.8125rem;\n  font-weight: 400;\n  color: rgba(255, 255, 255, 0.5);\n  cursor: pointer;\n  transition: color 0.15s ease;\n}\n.page-toolbar-module__settingsNavLink___QulVN:hover {\n  color: rgba(255, 255, 255, 0.9);\n}\n.page-toolbar-module__settingsNavLink___QulVN.page-toolbar-module__light___OkEHy {\n  color: rgba(0, 0, 0, 0.5);\n}\n.page-toolbar-module__settingsNavLink___QulVN.page-toolbar-module__light___OkEHy:hover {\n  color: rgba(0, 0, 0, 0.8);\n}\n.page-toolbar-module__settingsNavLink___QulVN svg {\n  color: rgba(255, 255, 255, 0.4);\n  transition: color 0.15s ease;\n}\n.page-toolbar-module__settingsNavLink___QulVN:hover svg {\n  color: #fff;\n}\n.page-toolbar-module__settingsNavLink___QulVN.page-toolbar-module__light___OkEHy svg {\n  color: rgba(0, 0, 0, 0.25);\n}\n.page-toolbar-module__settingsNavLink___QulVN.page-toolbar-module__light___OkEHy:hover svg {\n  color: rgba(0, 0, 0, 0.8);\n}\n\n.page-toolbar-module__settingsNavLinkRight___2sIrs {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n}\n\n.page-toolbar-module__mcpNavIndicator___nHMuu {\n  width: 8px;\n  height: 8px;\n  border-radius: 50%;\n  flex-shrink: 0;\n}\n.page-toolbar-module__mcpNavIndicator___nHMuu.page-toolbar-module__connected___bd4g7 {\n  background: #34c759;\n  animation: page-toolbar-module__mcpPulse___JirbR 2.5s ease-in-out infinite;\n}\n.page-toolbar-module__mcpNavIndicator___nHMuu.page-toolbar-module__connecting___l9kzm {\n  background: #f5a623;\n  animation: page-toolbar-module__mcpPulse___JirbR 1.5s ease-in-out infinite;\n}\n\n.page-toolbar-module__settingsBackButton___f3AO8 {\n  display: flex;\n  align-items: center;\n  gap: 4px;\n  padding: 6px 0 12px 0;\n  margin: -6px 0 0.5rem 0;\n  border: none;\n  border-bottom: 1px solid rgba(255, 255, 255, 0.07);\n  border-radius: 0;\n  background: transparent;\n  font-family: inherit;\n  font-size: 0.8125rem;\n  font-weight: 500;\n  letter-spacing: -0.15px;\n  color: #fff;\n  cursor: pointer;\n  transition: transform 0.12s cubic-bezier(0.32, 0.72, 0, 1);\n}\n.page-toolbar-module__settingsBackButton___f3AO8 svg {\n  opacity: 0.4;\n  flex-shrink: 0;\n  transition: opacity 0.15s ease, transform 0.18s cubic-bezier(0.32, 0.72, 0, 1);\n}\n.page-toolbar-module__settingsBackButton___f3AO8:hover svg {\n  opacity: 1;\n}\n.page-toolbar-module__settingsBackButton___f3AO8.page-toolbar-module__light___OkEHy {\n  color: rgba(0, 0, 0, 0.85);\n  border-bottom-color: rgba(0, 0, 0, 0.08);\n}\n\n.page-toolbar-module__automationHeader___A77vC {\n  display: flex;\n  align-items: center;\n  gap: 0.125rem;\n  font-size: 0.8125rem;\n  font-weight: 400;\n  color: #fff;\n}\n.page-toolbar-module__automationHeader___A77vC .page-toolbar-module__helpIcon___PGlAb svg {\n  transform: none;\n}\n.page-toolbar-module__automationHeader___A77vC.page-toolbar-module__light___OkEHy {\n  color: rgba(0, 0, 0, 0.85);\n}\n\n.page-toolbar-module__automationDescription___0scee {\n  font-size: 0.6875rem;\n  font-weight: 300;\n  color: rgba(255, 255, 255, 0.5);\n  margin-top: 2px;\n  line-height: 14px;\n}\n.page-toolbar-module__automationDescription___0scee.page-toolbar-module__light___OkEHy {\n  color: rgba(0, 0, 0, 0.5);\n}\n\n.page-toolbar-module__learnMoreLink___PkVsi {\n  color: rgba(255, 255, 255, 0.8);\n  text-decoration: underline dotted;\n  text-decoration-color: rgba(255, 255, 255, 0.2);\n  text-underline-offset: 2px;\n  transition: color 0.15s ease;\n}\n.page-toolbar-module__learnMoreLink___PkVsi:hover {\n  color: #fff;\n}\n.page-toolbar-module__learnMoreLink___PkVsi.page-toolbar-module__light___OkEHy {\n  color: rgba(0, 0, 0, 0.6);\n  text-decoration-color: rgba(0, 0, 0, 0.2);\n}\n.page-toolbar-module__learnMoreLink___PkVsi.page-toolbar-module__light___OkEHy:hover {\n  color: rgba(0, 0, 0, 0.85);\n}\n\n.page-toolbar-module__autoSendRow___er1rz {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n}\n\n.page-toolbar-module__autoSendLabel___JilZW {\n  font-size: 0.6875rem;\n  font-weight: 400;\n  color: rgba(255, 255, 255, 0.4);\n  transition: color 0.15s ease;\n}\n.page-toolbar-module__autoSendLabel___JilZW.page-toolbar-module__active___eCNCs {\n  color: #66b8ff;\n}\n.page-toolbar-module__autoSendLabel___JilZW.page-toolbar-module__light___OkEHy {\n  color: rgba(0, 0, 0, 0.4);\n}\n.page-toolbar-module__autoSendLabel___JilZW.page-toolbar-module__light___OkEHy.page-toolbar-module__active___eCNCs {\n  color: #3c82f7;\n}\n\n.page-toolbar-module__webhookUrlInput___QcPU3 {\n  display: block;\n  width: 100%;\n  flex: 1;\n  min-height: 60px;\n  box-sizing: border-box;\n  margin-top: 11px;\n  padding: 8px 10px;\n  border: 1px solid rgba(255, 255, 255, 0.1);\n  border-radius: 6px;\n  background: rgba(255, 255, 255, 0.03);\n  font-family: inherit;\n  font-size: 0.75rem;\n  font-weight: 400;\n  color: #fff;\n  outline: none;\n  resize: none;\n  cursor: text !important;\n  user-select: text;\n  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;\n}\n.page-toolbar-module__webhookUrlInput___QcPU3::placeholder {\n  color: rgba(255, 255, 255, 0.3);\n}\n.page-toolbar-module__webhookUrlInput___QcPU3:focus {\n  border-color: rgba(255, 255, 255, 0.3);\n  background: rgba(255, 255, 255, 0.08);\n}\n.page-toolbar-module__webhookUrlInput___QcPU3.page-toolbar-module__light___OkEHy {\n  border-color: rgba(0, 0, 0, 0.1);\n  background: rgba(0, 0, 0, 0.03);\n  color: rgba(0, 0, 0, 0.85);\n}\n.page-toolbar-module__webhookUrlInput___QcPU3.page-toolbar-module__light___OkEHy::placeholder {\n  color: rgba(0, 0, 0, 0.3);\n}\n.page-toolbar-module__webhookUrlInput___QcPU3.page-toolbar-module__light___OkEHy:focus {\n  border-color: rgba(0, 0, 0, 0.25);\n  background: rgba(0, 0, 0, 0.05);\n}\n\n.page-toolbar-module__settingsHeader___Vu98j {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  min-height: 24px;\n  margin-bottom: 0.5rem;\n  padding-bottom: 9px;\n  border-bottom: 1px solid rgba(255, 255, 255, 0.07);\n}\n\n.page-toolbar-module__settingsBrand___euQq5 {\n  font-size: 0.8125rem;\n  font-weight: 600;\n  letter-spacing: -0.0094em;\n  color: #fff;\n}\n\n.page-toolbar-module__settingsBrandSlash___RxG4a {\n  color: rgba(255, 255, 255, 0.5);\n}\n\n.page-toolbar-module__settingsVersion___N-GPL {\n  font-size: 11px;\n  font-weight: 400;\n  color: rgba(255, 255, 255, 0.4);\n  margin-left: auto;\n  letter-spacing: -0.0094em;\n}\n\n.page-toolbar-module__settingsSection___kh4vw + .page-toolbar-module__settingsSection___kh4vw {\n  margin-top: 0.5rem;\n  padding-top: 0.5rem;\n  border-top: 1px solid rgba(255, 255, 255, 0.07);\n}\n.page-toolbar-module__settingsSection___kh4vw.page-toolbar-module__settingsSectionExtraPadding___ti6XY {\n  padding-top: calc(0.5rem + 4px);\n}\n\n.page-toolbar-module__settingsSectionGrow___kVkby {\n  flex: 1;\n  display: flex;\n  flex-direction: column;\n}\n\n.page-toolbar-module__settingsRow___li31L {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  min-height: 24px;\n}\n.page-toolbar-module__settingsRow___li31L.page-toolbar-module__settingsRowMarginTop___Nk3bS {\n  margin-top: 8px;\n}\n\n.page-toolbar-module__dropdownContainer___FBf2c {\n  position: relative;\n}\n\n.page-toolbar-module__dropdownButton___qTm2f {\n  display: flex;\n  align-items: center;\n  gap: 0.5rem;\n  padding: 0.25rem 0.5rem;\n  border: none;\n  border-radius: 0.375rem;\n  background: transparent;\n  font-size: 0.8125rem;\n  font-weight: 600;\n  color: #fff;\n  cursor: pointer;\n  transition: background-color 0.15s ease, color 0.15s ease;\n  letter-spacing: -0.0094em;\n}\n.page-toolbar-module__dropdownButton___qTm2f:hover {\n  background: rgba(255, 255, 255, 0.08);\n}\n.page-toolbar-module__dropdownButton___qTm2f svg {\n  opacity: 0.6;\n}\n\n.page-toolbar-module__cycleButton___uS15m {\n  display: flex;\n  align-items: center;\n  gap: 0.5rem;\n  padding: 0;\n  border: none;\n  background: transparent;\n  font-size: 0.8125rem;\n  font-weight: 500;\n  color: #fff;\n  cursor: pointer;\n  letter-spacing: -0.0094em;\n}\n.page-toolbar-module__cycleButton___uS15m.page-toolbar-module__light___OkEHy {\n  color: rgba(0, 0, 0, 0.85);\n}\n.page-toolbar-module__cycleButton___uS15m:disabled {\n  opacity: 0.35;\n  cursor: not-allowed;\n}\n\n.page-toolbar-module__settingsRowDisabled___c4jKo .page-toolbar-module__settingsLabel___Ai4Q- {\n  color: rgba(255, 255, 255, 0.2);\n}\n.page-toolbar-module__settingsRowDisabled___c4jKo .page-toolbar-module__settingsLabel___Ai4Q-.page-toolbar-module__light___OkEHy {\n  color: rgba(0, 0, 0, 0.2);\n}\n.page-toolbar-module__settingsRowDisabled___c4jKo .page-toolbar-module__toggleSwitch___TTjxl {\n  opacity: 0.4;\n  cursor: not-allowed;\n}\n\n@keyframes page-toolbar-module__cycleTextIn___0H9ys {\n  0% {\n    opacity: 0;\n    transform: translateY(-6px);\n  }\n  100% {\n    opacity: 1;\n    transform: translateY(0);\n  }\n}\n.page-toolbar-module__cycleButtonText___EmmsR {\n  display: inline-block;\n  animation: page-toolbar-module__cycleTextIn___0H9ys 0.2s ease-out;\n}\n\n.page-toolbar-module__cycleDots___PXV30 {\n  display: flex;\n  flex-direction: column;\n  gap: 2px;\n}\n\n.page-toolbar-module__cycleDot___CW1tR {\n  width: 3px;\n  height: 3px;\n  border-radius: 50%;\n  background: rgba(255, 255, 255, 0.3);\n  transform: scale(0.667);\n  transition: background-color 0.25s ease-out, transform 0.25s ease-out;\n}\n.page-toolbar-module__cycleDot___CW1tR.page-toolbar-module__active___eCNCs {\n  background: #fff;\n  transform: scale(1);\n}\n.page-toolbar-module__cycleDot___CW1tR.page-toolbar-module__light___OkEHy {\n  background: rgba(0, 0, 0, 0.2);\n}\n.page-toolbar-module__cycleDot___CW1tR.page-toolbar-module__light___OkEHy.page-toolbar-module__active___eCNCs {\n  background: rgba(0, 0, 0, 0.7);\n}\n\n.page-toolbar-module__dropdownMenu___rHVad {\n  position: absolute;\n  right: 0;\n  top: calc(100% + 0.25rem);\n  background: #1a1a1a;\n  border-radius: 0.5rem;\n  padding: 0.25rem;\n  min-width: 120px;\n  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);\n  z-index: 10;\n  animation: page-toolbar-module__scaleIn___7i9nB 0.15s ease-out;\n}\n\n.page-toolbar-module__dropdownItem___a0PQp {\n  width: 100%;\n  display: flex;\n  align-items: center;\n  padding: 0.5rem 0.625rem;\n  border: none;\n  border-radius: 0.375rem;\n  background: transparent;\n  font-size: 0.8125rem;\n  font-weight: 500;\n  color: rgba(255, 255, 255, 0.85);\n  cursor: pointer;\n  text-align: left;\n  transition: background-color 0.15s ease, color 0.15s ease;\n  letter-spacing: -0.0094em;\n}\n.page-toolbar-module__dropdownItem___a0PQp:hover {\n  background: rgba(255, 255, 255, 0.08);\n}\n.page-toolbar-module__dropdownItem___a0PQp.page-toolbar-module__selected___MO3j6 {\n  background: rgba(255, 255, 255, 0.12);\n  color: #fff;\n  font-weight: 600;\n}\n\n.page-toolbar-module__settingsLabel___Ai4Q- {\n  font-size: 0.8125rem;\n  font-weight: 400;\n  letter-spacing: -0.0094em;\n  color: rgba(255, 255, 255, 0.5);\n  display: flex;\n  align-items: center;\n  gap: 0.125rem;\n}\n.page-toolbar-module__settingsLabel___Ai4Q-.page-toolbar-module__light___OkEHy {\n  color: rgba(0, 0, 0, 0.5);\n}\n\n.page-toolbar-module__settingsLabelMarker___ZbvBg {\n  padding-top: 3px;\n  margin-bottom: 10px;\n}\n\n.page-toolbar-module__settingsOptions___EZdOQ {\n  display: flex;\n  gap: 0.25rem;\n}\n\n.page-toolbar-module__settingsOption___X1xKK {\n  flex: 1;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  gap: 0.25rem;\n  padding: 0.375rem 0.5rem;\n  border: none;\n  border-radius: 0.375rem;\n  background: transparent;\n  font-size: 0.6875rem;\n  font-weight: 500;\n  color: rgba(0, 0, 0, 0.7);\n  cursor: pointer;\n  transition: background-color 0.15s ease, color 0.15s ease;\n}\n.page-toolbar-module__settingsOption___X1xKK:hover {\n  background: rgba(0, 0, 0, 0.05);\n}\n.page-toolbar-module__settingsOption___X1xKK.page-toolbar-module__selected___MO3j6 {\n  background: rgba(60, 130, 247, 0.15);\n  color: #3c82f7;\n}\n\n.page-toolbar-module__sliderContainer___HYHEn {\n  display: flex;\n  flex-direction: column;\n  gap: 0.5rem;\n}\n\n.page-toolbar-module__slider___XkOCz {\n  -webkit-appearance: none;\n  appearance: none;\n  width: 100%;\n  height: 4px;\n  background: rgba(255, 255, 255, 0.15);\n  border-radius: 2px;\n  outline: none;\n  cursor: pointer;\n}\n.page-toolbar-module__slider___XkOCz::-webkit-slider-thumb {\n  -webkit-appearance: none;\n  appearance: none;\n  width: 14px;\n  height: 14px;\n  background: white;\n  border-radius: 50%;\n  cursor: pointer;\n  transition: transform 0.15s ease, box-shadow 0.15s ease;\n  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);\n}\n.page-toolbar-module__slider___XkOCz::-moz-range-thumb {\n  width: 14px;\n  height: 14px;\n  background: white;\n  border: none;\n  border-radius: 50%;\n  cursor: pointer;\n  transition: transform 0.15s ease, box-shadow 0.15s ease;\n  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);\n}\n.page-toolbar-module__slider___XkOCz:hover::-webkit-slider-thumb {\n  transform: scale(1.15);\n  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);\n}\n.page-toolbar-module__slider___XkOCz:hover::-moz-range-thumb {\n  transform: scale(1.15);\n  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);\n}\n\n.page-toolbar-module__sliderLabels___J4-mc {\n  display: flex;\n  justify-content: space-between;\n}\n\n.page-toolbar-module__sliderLabel___qK6W0 {\n  font-size: 0.625rem;\n  font-weight: 500;\n  color: rgba(255, 255, 255, 0.4);\n  cursor: pointer;\n  transition: color 0.15s ease;\n}\n.page-toolbar-module__sliderLabel___qK6W0:hover {\n  color: rgba(255, 255, 255, 0.7);\n}\n.page-toolbar-module__sliderLabel___qK6W0.page-toolbar-module__active___eCNCs {\n  color: rgba(255, 255, 255, 0.9);\n}\n\n.page-toolbar-module__colorOptions___2P2Dw {\n  display: flex;\n  gap: 0.5rem;\n  margin-top: 0.375rem;\n  margin-bottom: 1px;\n}\n\n.page-toolbar-module__colorOption___oAKqy {\n  display: block;\n  width: 20px;\n  height: 20px;\n  border-radius: 50%;\n  border: 2px solid transparent;\n  cursor: pointer;\n  transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);\n}\n.page-toolbar-module__colorOption___oAKqy:hover {\n  transform: scale(1.15);\n}\n.page-toolbar-module__colorOption___oAKqy.page-toolbar-module__selected___MO3j6 {\n  transform: scale(0.83);\n}\n\n.page-toolbar-module__colorOptionRing___-Fehe {\n  display: flex;\n  width: 24px;\n  height: 24px;\n  border: 2px solid transparent;\n  border-radius: 50%;\n  transition: border-color 0.3s ease;\n}\n.page-toolbar-module__settingsToggle___X2LSX {\n  display: flex;\n  align-items: center;\n  gap: 0.5rem;\n  cursor: pointer;\n}\n.page-toolbar-module__settingsToggle___X2LSX + .page-toolbar-module__settingsToggle___X2LSX {\n  margin-top: calc(0.5rem + 6px);\n}\n.page-toolbar-module__settingsToggle___X2LSX input[type=checkbox] {\n  position: absolute;\n  opacity: 0;\n  width: 0;\n  height: 0;\n}\n.page-toolbar-module__settingsToggle___X2LSX.page-toolbar-module__settingsToggleMarginBottom___z9mxi {\n  margin-bottom: calc(0.5rem + 6px);\n}\n\n.page-toolbar-module__customCheckbox___X5b-y {\n  position: relative;\n  width: 14px;\n  height: 14px;\n  border: 1px solid rgba(255, 255, 255, 0.2);\n  border-radius: 4px;\n  background: rgba(255, 255, 255, 0.05);\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  flex-shrink: 0;\n  transition: background 0.25s ease, border-color 0.25s ease;\n}\n.page-toolbar-module__customCheckbox___X5b-y svg {\n  color: #1a1a1a;\n  opacity: 1;\n  transition: opacity 0.15s ease;\n}\ninput[type=checkbox]:checked + .page-toolbar-module__customCheckbox___X5b-y {\n  border-color: rgba(255, 255, 255, 0.3);\n  background: rgb(255, 255, 255);\n}\n.page-toolbar-module__customCheckbox___X5b-y.page-toolbar-module__light___OkEHy {\n  border: 1px solid rgba(0, 0, 0, 0.15);\n  background: #fff;\n}\n.page-toolbar-module__customCheckbox___X5b-y.page-toolbar-module__light___OkEHy.page-toolbar-module__checked___ey1iv {\n  border-color: #1a1a1a;\n  background: #1a1a1a;\n}\n.page-toolbar-module__customCheckbox___X5b-y.page-toolbar-module__light___OkEHy.page-toolbar-module__checked___ey1iv svg {\n  color: #fff;\n}\n\n.page-toolbar-module__toggleLabel___f3w7K {\n  font-size: 0.8125rem;\n  font-weight: 400;\n  color: rgba(255, 255, 255, 0.5);\n  letter-spacing: -0.0094em;\n  display: flex;\n  align-items: center;\n  gap: 0.25rem;\n}\n.page-toolbar-module__toggleLabel___f3w7K.page-toolbar-module__light___OkEHy {\n  color: rgba(0, 0, 0, 0.5);\n}\n\n.page-toolbar-module__toggleSwitch___TTjxl {\n  position: relative;\n  display: inline-block;\n  width: 24px;\n  height: 16px;\n  flex-shrink: 0;\n  cursor: pointer;\n  transition: opacity 0.15s ease;\n}\n.page-toolbar-module__toggleSwitch___TTjxl input {\n  opacity: 0;\n  width: 0;\n  height: 0;\n}\n.page-toolbar-module__toggleSwitch___TTjxl input:checked + .page-toolbar-module__toggleSlider___YnDma {\n  background: #3c82f7;\n}\n.page-toolbar-module__toggleSwitch___TTjxl input:checked + .page-toolbar-module__toggleSlider___YnDma::before {\n  transform: translateX(8px);\n}\n.page-toolbar-module__toggleSwitch___TTjxl.page-toolbar-module__disabled___jwPry {\n  opacity: 0.4;\n  pointer-events: none;\n}\n.page-toolbar-module__toggleSwitch___TTjxl.page-toolbar-module__disabled___jwPry .page-toolbar-module__toggleSlider___YnDma {\n  cursor: not-allowed;\n}\n\n.page-toolbar-module__toggleSlider___YnDma {\n  position: absolute;\n  cursor: pointer;\n  inset: 0;\n  border-radius: 16px;\n  background: #484848;\n}\n.page-toolbar-module__light___OkEHy .page-toolbar-module__toggleSlider___YnDma {\n  background: #dddddd;\n}\n.page-toolbar-module__toggleSlider___YnDma::before {\n  content: "";\n  position: absolute;\n  height: 12px;\n  width: 12px;\n  left: 2px;\n  bottom: 2px;\n  background: white;\n  border-radius: 50%;\n  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);\n  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);\n}\n\n@keyframes page-toolbar-module__mcpPulse___JirbR {\n  0% {\n    box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.5);\n  }\n  70% {\n    box-shadow: 0 0 0 6px rgba(52, 199, 89, 0);\n  }\n  100% {\n    box-shadow: 0 0 0 0 rgba(52, 199, 89, 0);\n  }\n}\n@keyframes page-toolbar-module__mcpPulseError___BWrat {\n  0% {\n    box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.5);\n  }\n  70% {\n    box-shadow: 0 0 0 6px rgba(255, 59, 48, 0);\n  }\n  100% {\n    box-shadow: 0 0 0 0 rgba(255, 59, 48, 0);\n  }\n}\n.page-toolbar-module__mcpStatusDot___Lwqmi {\n  width: 8px;\n  height: 8px;\n  border-radius: 50%;\n  flex-shrink: 0;\n}\n.page-toolbar-module__mcpStatusDot___Lwqmi.page-toolbar-module__connecting___l9kzm {\n  background: #f5a623;\n  animation: page-toolbar-module__mcpPulse___JirbR 1.5s infinite;\n}\n.page-toolbar-module__mcpStatusDot___Lwqmi.page-toolbar-module__connected___bd4g7 {\n  background: #34c759;\n  animation: page-toolbar-module__mcpPulse___JirbR 2.5s ease-in-out infinite;\n}\n.page-toolbar-module__mcpStatusDot___Lwqmi.page-toolbar-module__disconnected___yfvyJ {\n  background: #ff3b30;\n  animation: page-toolbar-module__mcpPulseError___BWrat 2s infinite;\n}\n\n.page-toolbar-module__helpIcon___PGlAb {\n  position: relative;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  cursor: help;\n  margin-left: 0;\n}\n.page-toolbar-module__helpIcon___PGlAb svg {\n  display: block;\n  transform: translateY(1px);\n  color: rgba(255, 255, 255, 0.2);\n  transition: color 0.15s ease;\n}\n.page-toolbar-module__helpIcon___PGlAb:hover svg {\n  color: rgba(255, 255, 255, 0.5);\n}\n.page-toolbar-module__helpIcon___PGlAb.page-toolbar-module__helpIconNudgeDown___p8D9P svg {\n  transform: translateY(1px);\n}\n.page-toolbar-module__helpIcon___PGlAb.page-toolbar-module__helpIconNoNudge___j8dJo svg {\n  transform: translateY(0.5px);\n}\n.page-toolbar-module__helpIcon___PGlAb.page-toolbar-module__helpIconNudge1-5___0zgUD svg {\n  transform: translateY(1.5px);\n}\n.page-toolbar-module__helpIcon___PGlAb.page-toolbar-module__helpIconNudge2___-J3Fk svg {\n  transform: translateY(2px);\n}\n\n.page-toolbar-module__drawCanvas___D4ZkJ {\n  position: fixed;\n  inset: 0;\n  z-index: 99996;\n  pointer-events: none !important;\n}\n.page-toolbar-module__drawCanvas___D4ZkJ.page-toolbar-module__active___eCNCs {\n  pointer-events: auto !important;\n  cursor: crosshair !important;\n}\n.page-toolbar-module__drawCanvas___D4ZkJ.page-toolbar-module__active___eCNCs[data-stroke-hover] {\n  cursor: pointer !important;\n}\n\n.page-toolbar-module__dragSelection___FICBI {\n  position: fixed;\n  top: 0;\n  left: 0;\n  border: 2px solid rgba(52, 199, 89, 0.6);\n  border-radius: 4px;\n  background: rgba(52, 199, 89, 0.08);\n  pointer-events: none;\n  z-index: 99997;\n  will-change: transform, width, height;\n  contain: layout style;\n}\n\n.page-toolbar-module__dragCount___k23a6 {\n  position: absolute;\n  top: 50%;\n  left: 50%;\n  transform: translate(-50%, -50%);\n  background: #34c759;\n  color: white;\n  font-size: 0.875rem;\n  font-weight: 600;\n  padding: 0.25rem 0.5rem;\n  border-radius: 1rem;\n  min-width: 1.5rem;\n  text-align: center;\n}\n\n.page-toolbar-module__highlightsContainer___Dtrkr {\n  position: fixed;\n  top: 0;\n  left: 0;\n  pointer-events: none;\n  z-index: 99996;\n}\n\n.page-toolbar-module__selectedElementHighlight___6tZvS {\n  position: fixed;\n  top: 0;\n  left: 0;\n  border: 2px solid rgba(52, 199, 89, 0.5);\n  border-radius: 4px;\n  background: rgba(52, 199, 89, 0.06);\n  pointer-events: none;\n  will-change: transform, width, height;\n  contain: layout style;\n}\n\n.page-toolbar-module__light___OkEHy.page-toolbar-module__toolbarContainer___x5R-d {\n  background: #fff;\n  color: rgba(0, 0, 0, 0.85);\n  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__toolbarContainer___x5R-d.page-toolbar-module__collapsed___Ep0vF:hover {\n  background: #f5f5f5;\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__controlButton___ppLrv {\n  color: rgba(0, 0, 0, 0.5);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__controlButton___ppLrv:hover:not(:disabled):not([data-active=true]):not([data-failed=true]):not([data-auto-sync=true]):not([data-error=true]):not([data-no-hover=true]) {\n  background: rgba(0, 0, 0, 0.06);\n  color: rgba(0, 0, 0, 0.85);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__controlButton___ppLrv[data-active=true] {\n  color: #3c82f7;\n  background: rgba(60, 130, 247, 0.15);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__controlButton___ppLrv[data-error=true] {\n  color: #ff3b30;\n  background: rgba(255, 59, 48, 0.15);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__controlButton___ppLrv[data-danger]:hover:not(:disabled):not([data-active=true]):not([data-failed=true]) {\n  background: rgba(255, 59, 48, 0.15);\n  color: #ff3b30;\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__controlButton___ppLrv[data-auto-sync=true] {\n  color: #34c759;\n  background: transparent;\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__controlButton___ppLrv[data-failed=true] {\n  color: #ff3b30;\n  background: rgba(255, 59, 48, 0.15);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__buttonTooltip___AetOW {\n  background: #fff;\n  color: rgba(0, 0, 0, 0.85);\n  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__buttonTooltip___AetOW::after {\n  background: #fff;\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__divider___cL2DV {\n  background: rgba(0, 0, 0, 0.1);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__markerTooltip___oBqwC {\n  background: #fff;\n  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__markerTooltip___oBqwC .page-toolbar-module__markerQuote___9Qfoa {\n  color: rgba(0, 0, 0, 0.5);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__markerTooltip___oBqwC .page-toolbar-module__markerNote___HOmyF {\n  color: rgba(0, 0, 0, 0.85);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__markerTooltip___oBqwC .page-toolbar-module__markerHint___rUwXR {\n  color: rgba(0, 0, 0, 0.35);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP {\n  background: #fff;\n  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP::before {\n  background: linear-gradient(to right, #fff 0%, transparent 100%);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP::after {\n  background: linear-gradient(to left, #fff 0%, transparent 100%);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsHeader___Vu98j {\n  border-bottom-color: rgba(0, 0, 0, 0.08);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsBrand___euQq5 {\n  color: rgba(0, 0, 0, 0.85);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsBrandSlash___RxG4a {\n  color: rgba(0, 0, 0, 0.4);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsVersion___N-GPL {\n  color: rgba(0, 0, 0, 0.4);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsSection___kh4vw {\n  border-top-color: rgba(0, 0, 0, 0.08);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsLabel___Ai4Q- {\n  color: rgba(0, 0, 0, 0.5);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__cycleButton___uS15m {\n  color: rgba(0, 0, 0, 0.85);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__cycleDot___CW1tR {\n  background: rgba(0, 0, 0, 0.2);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__cycleDot___CW1tR.page-toolbar-module__active___eCNCs {\n  background: rgba(0, 0, 0, 0.7);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__dropdownButton___qTm2f {\n  color: rgba(0, 0, 0, 0.85);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__dropdownButton___qTm2f:hover {\n  background: rgba(0, 0, 0, 0.05);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__toggleLabel___f3w7K {\n  color: rgba(0, 0, 0, 0.5);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__customCheckbox___X5b-y {\n  border: 1px solid rgba(0, 0, 0, 0.15);\n  background: #fff;\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__customCheckbox___X5b-y.page-toolbar-module__checked___ey1iv {\n  border-color: #1a1a1a;\n  background: #1a1a1a;\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__customCheckbox___X5b-y.page-toolbar-module__checked___ey1iv svg {\n  color: #fff;\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__sliderLabel___qK6W0 {\n  color: rgba(0, 0, 0, 0.4);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__sliderLabel___qK6W0:hover {\n  color: rgba(0, 0, 0, 0.7);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__sliderLabel___qK6W0.page-toolbar-module__active___eCNCs {\n  color: rgba(0, 0, 0, 0.9);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__slider___XkOCz {\n  background: rgba(0, 0, 0, 0.1);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__slider___XkOCz::-webkit-slider-thumb {\n  background: #1a1a1a;\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__slider___XkOCz::-moz-range-thumb {\n  background: #1a1a1a;\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__helpIcon___PGlAb svg {\n  color: rgba(0, 0, 0, 0.2);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__helpIcon___PGlAb:hover svg {\n  color: rgba(0, 0, 0, 0.5);\n}\n\n.page-toolbar-module__themeToggle___vLtgF {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  width: 22px;\n  height: 22px;\n  margin-left: 0.5rem;\n  border: none;\n  border-radius: 6px;\n  background: transparent;\n  color: rgba(255, 255, 255, 0.4);\n  cursor: pointer;\n  transition: background-color 0.15s ease, color 0.15s ease;\n}\n.page-toolbar-module__themeToggle___vLtgF:hover {\n  background: rgba(255, 255, 255, 0.1);\n  color: rgba(255, 255, 255, 0.8);\n}\n.page-toolbar-module__light___OkEHy .page-toolbar-module__themeToggle___vLtgF {\n  color: rgba(0, 0, 0, 0.4);\n}\n.page-toolbar-module__light___OkEHy .page-toolbar-module__themeToggle___vLtgF:hover {\n  background: rgba(0, 0, 0, 0.06);\n  color: rgba(0, 0, 0, 0.7);\n}\n\n.page-toolbar-module__themeIconWrapper___9EVcM {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  position: relative;\n  width: 20px;\n  height: 20px;\n}\n\n.page-toolbar-module__themeIcon___xi-Ah {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  animation: page-toolbar-module__themeIconIn___pKRY4 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;\n}\n\n@keyframes page-toolbar-module__themeIconIn___pKRY4 {\n  0% {\n    opacity: 0;\n    transform: scale(0.8) rotate(-30deg);\n  }\n  100% {\n    opacity: 1;\n    transform: scale(1) rotate(0deg);\n  }\n}';
-var classNames = { "toolbar": "page-toolbar-module__toolbar___sBwIb", "toolbarContainer": "page-toolbar-module__toolbarContainer___x5R-d", "dragging": "page-toolbar-module__dragging___UIy-x", "entrance": "page-toolbar-module__entrance___gAJff", "toolbarEnter": "page-toolbar-module__toolbarEnter___-WEE5", "collapsed": "page-toolbar-module__collapsed___Ep0vF", "expanded": "page-toolbar-module__expanded___HKRxf", "serverConnected": "page-toolbar-module__serverConnected___AgpbE", "toggleContent": "page-toolbar-module__toggleContent___uFPh5", "visible": "page-toolbar-module__visible___0P5dl", "hidden": "page-toolbar-module__hidden___rLRX-", "controlsContent": "page-toolbar-module__controlsContent___3c09P", "badge": "page-toolbar-module__badge___d2Sgd", "fadeOut": "page-toolbar-module__fadeOut___dAA6W", "badgeEnter": "page-toolbar-module__badgeEnter___tPtKD", "controlButton": "page-toolbar-module__controlButton___ppLrv", "statusShowing": "page-toolbar-module__statusShowing___F-Tku", "buttonBadge": "page-toolbar-module__buttonBadge___ID4id", "light": "page-toolbar-module__light___OkEHy", "mcpIndicator": "page-toolbar-module__mcpIndicator___KqlFK", "connected": "page-toolbar-module__connected___bd4g7", "mcpIndicatorPulseConnected": "page-toolbar-module__mcpIndicatorPulseConnected___0ghgC", "connecting": "page-toolbar-module__connecting___l9kzm", "mcpIndicatorPulseConnecting": "page-toolbar-module__mcpIndicatorPulseConnecting___kYfpu", "connectionIndicatorWrapper": "page-toolbar-module__connectionIndicatorWrapper___xmyKM", "connectionIndicator": "page-toolbar-module__connectionIndicator___0gwMz", "connectionIndicatorVisible": "page-toolbar-module__connectionIndicatorVisible___L-bAC", "connectionIndicatorConnected": "page-toolbar-module__connectionIndicatorConnected___I2ODc", "connectionPulse": "page-toolbar-module__connectionPulse___Mb8JU", "connectionIndicatorDisconnected": "page-toolbar-module__connectionIndicatorDisconnected___s2kSH", "connectionIndicatorConnecting": "page-toolbar-module__connectionIndicatorConnecting___IjG3P", "buttonWrapper": "page-toolbar-module__buttonWrapper___Z2afJ", "buttonTooltip": "page-toolbar-module__buttonTooltip___AetOW", "sendButtonWrapper": "page-toolbar-module__sendButtonWrapper___naR5s", "sendButtonVisible": "page-toolbar-module__sendButtonVisible___3ItIp", "shortcut": "page-toolbar-module__shortcut___dVvrO", "tooltipBelow": "page-toolbar-module__tooltipBelow___4zzOD", "tooltipsHidden": "page-toolbar-module__tooltipsHidden___1NAj0", "tooltipVisible": "page-toolbar-module__tooltipVisible___Z9IMh", "buttonWrapperAlignLeft": "page-toolbar-module__buttonWrapperAlignLeft___fQ8G3", "buttonWrapperAlignRight": "page-toolbar-module__buttonWrapperAlignRight___mSVi3", "divider": "page-toolbar-module__divider___cL2DV", "overlay": "page-toolbar-module__overlay___Zg2Lx", "hoverHighlight": "page-toolbar-module__hoverHighlight___x-hcw", "enter": "page-toolbar-module__enter___MokYX", "hoverHighlightIn": "page-toolbar-module__hoverHighlightIn___f6l-B", "multiSelectOutline": "page-toolbar-module__multiSelectOutline___GtfT4", "fadeIn": "page-toolbar-module__fadeIn___RJvi3", "exit": "page-toolbar-module__exit___6NIVt", "singleSelectOutline": "page-toolbar-module__singleSelectOutline___lDMOt", "hoverTooltip": "page-toolbar-module__hoverTooltip___YHQxN", "hoverTooltipIn": "page-toolbar-module__hoverTooltipIn___d-9u5", "hoverReactPath": "page-toolbar-module__hoverReactPath___gsH0-", "hoverElementName": "page-toolbar-module__hoverElementName___9Wxnf", "markersLayer": "page-toolbar-module__markersLayer___hXKyR", "fixedMarkersLayer": "page-toolbar-module__fixedMarkersLayer___0QARr", "marker": "page-toolbar-module__marker___c0doQ", "clearing": "page-toolbar-module__clearing___aXE1v", "markerIn": "page-toolbar-module__markerIn___A1Wxv", "markerOut": "page-toolbar-module__markerOut___h-kr9", "pending": "page-toolbar-module__pending___Ln-lV", "fixed": "page-toolbar-module__fixed___U4mr3", "multiSelect": "page-toolbar-module__multiSelect___Z-PYZ", "hovered": "page-toolbar-module__hovered___2HwnW", "renumber": "page-toolbar-module__renumber___rVqlG", "renumberRoll": "page-toolbar-module__renumberRoll___zbFKe", "markerTooltip": "page-toolbar-module__markerTooltip___oBqwC", "tooltipIn": "page-toolbar-module__tooltipIn___jMmfJ", "tooltipOut": "page-toolbar-module__tooltipOut___G4PUQ", "markerQuote": "page-toolbar-module__markerQuote___9Qfoa", "markerNote": "page-toolbar-module__markerNote___HOmyF", "markerHint": "page-toolbar-module__markerHint___rUwXR", "settingsPanel": "page-toolbar-module__settingsPanel___C28ZP", "settingsHeader": "page-toolbar-module__settingsHeader___Vu98j", "settingsBrand": "page-toolbar-module__settingsBrand___euQq5", "settingsBrandSlash": "page-toolbar-module__settingsBrandSlash___RxG4a", "settingsVersion": "page-toolbar-module__settingsVersion___N-GPL", "settingsSection": "page-toolbar-module__settingsSection___kh4vw", "settingsLabel": "page-toolbar-module__settingsLabel___Ai4Q-", "cycleButton": "page-toolbar-module__cycleButton___uS15m", "cycleDot": "page-toolbar-module__cycleDot___CW1tR", "dropdownButton": "page-toolbar-module__dropdownButton___qTm2f", "toggleLabel": "page-toolbar-module__toggleLabel___f3w7K", "customCheckbox": "page-toolbar-module__customCheckbox___X5b-y", "sliderLabel": "page-toolbar-module__sliderLabel___qK6W0", "slider": "page-toolbar-module__slider___XkOCz", "helpIcon": "page-toolbar-module__helpIcon___PGlAb", "themeToggle": "page-toolbar-module__themeToggle___vLtgF", "dark": "page-toolbar-module__dark___fp8IT", "settingsOption": "page-toolbar-module__settingsOption___X1xKK", "selected": "page-toolbar-module__selected___MO3j6", "settingsPanelContainer": "page-toolbar-module__settingsPanelContainer___mjMeX", "transitioning": "page-toolbar-module__transitioning___tljBd", "settingsPage": "page-toolbar-module__settingsPage___D45Js", "slideLeft": "page-toolbar-module__slideLeft___Tz-ss", "automationsPage": "page-toolbar-module__automationsPage___Qf3xs", "slideIn": "page-toolbar-module__slideIn___Fhz3M", "settingsNavLink": "page-toolbar-module__settingsNavLink___QulVN", "settingsNavLinkRight": "page-toolbar-module__settingsNavLinkRight___2sIrs", "mcpNavIndicator": "page-toolbar-module__mcpNavIndicator___nHMuu", "mcpPulse": "page-toolbar-module__mcpPulse___JirbR", "settingsBackButton": "page-toolbar-module__settingsBackButton___f3AO8", "automationHeader": "page-toolbar-module__automationHeader___A77vC", "automationDescription": "page-toolbar-module__automationDescription___0scee", "learnMoreLink": "page-toolbar-module__learnMoreLink___PkVsi", "autoSendRow": "page-toolbar-module__autoSendRow___er1rz", "autoSendLabel": "page-toolbar-module__autoSendLabel___JilZW", "active": "page-toolbar-module__active___eCNCs", "webhookUrlInput": "page-toolbar-module__webhookUrlInput___QcPU3", "settingsSectionExtraPadding": "page-toolbar-module__settingsSectionExtraPadding___ti6XY", "settingsSectionGrow": "page-toolbar-module__settingsSectionGrow___kVkby", "settingsRow": "page-toolbar-module__settingsRow___li31L", "settingsRowMarginTop": "page-toolbar-module__settingsRowMarginTop___Nk3bS", "dropdownContainer": "page-toolbar-module__dropdownContainer___FBf2c", "settingsRowDisabled": "page-toolbar-module__settingsRowDisabled___c4jKo", "toggleSwitch": "page-toolbar-module__toggleSwitch___TTjxl", "cycleButtonText": "page-toolbar-module__cycleButtonText___EmmsR", "cycleTextIn": "page-toolbar-module__cycleTextIn___0H9ys", "cycleDots": "page-toolbar-module__cycleDots___PXV30", "dropdownMenu": "page-toolbar-module__dropdownMenu___rHVad", "scaleIn": "page-toolbar-module__scaleIn___7i9nB", "dropdownItem": "page-toolbar-module__dropdownItem___a0PQp", "settingsLabelMarker": "page-toolbar-module__settingsLabelMarker___ZbvBg", "settingsOptions": "page-toolbar-module__settingsOptions___EZdOQ", "sliderContainer": "page-toolbar-module__sliderContainer___HYHEn", "sliderLabels": "page-toolbar-module__sliderLabels___J4-mc", "colorOptions": "page-toolbar-module__colorOptions___2P2Dw", "colorOption": "page-toolbar-module__colorOption___oAKqy", "colorOptionRing": "page-toolbar-module__colorOptionRing___-Fehe", "settingsToggle": "page-toolbar-module__settingsToggle___X2LSX", "settingsToggleMarginBottom": "page-toolbar-module__settingsToggleMarginBottom___z9mxi", "checked": "page-toolbar-module__checked___ey1iv", "toggleSlider": "page-toolbar-module__toggleSlider___YnDma", "disabled": "page-toolbar-module__disabled___jwPry", "mcpStatusDot": "page-toolbar-module__mcpStatusDot___Lwqmi", "disconnected": "page-toolbar-module__disconnected___yfvyJ", "mcpPulseError": "page-toolbar-module__mcpPulseError___BWrat", "helpIconNudgeDown": "page-toolbar-module__helpIconNudgeDown___p8D9P", "helpIconNoNudge": "page-toolbar-module__helpIconNoNudge___j8dJo", "helpIconNudge1-5": "page-toolbar-module__helpIconNudge1-5___0zgUD", "helpIconNudge2": "page-toolbar-module__helpIconNudge2___-J3Fk", "drawCanvas": "page-toolbar-module__drawCanvas___D4ZkJ", "dragSelection": "page-toolbar-module__dragSelection___FICBI", "dragCount": "page-toolbar-module__dragCount___k23a6", "highlightsContainer": "page-toolbar-module__highlightsContainer___Dtrkr", "selectedElementHighlight": "page-toolbar-module__selectedElementHighlight___6tZvS", "themeIconWrapper": "page-toolbar-module__themeIconWrapper___9EVcM", "themeIcon": "page-toolbar-module__themeIcon___xi-Ah", "themeIconIn": "page-toolbar-module__themeIconIn___pKRY4", "scaleOut": "page-toolbar-module__scaleOut___Y1Ztx", "slideUp": "page-toolbar-module__slideUp___496yM", "slideDown": "page-toolbar-module__slideDown___PRK4O", "settingsPanelIn": "page-toolbar-module__settingsPanelIn___YMAX5", "settingsPanelOut": "page-toolbar-module__settingsPanelOut___fv1FI" };
+var css = 'svg[fill=none] {\n  fill: none !important;\n}\n\n.page-toolbar-module__toolbar___sBwIb :where(button, input, select, textarea, label) {\n  background: unset;\n  border: unset;\n  border-radius: unset;\n  padding: unset;\n  margin: unset;\n  color: unset;\n  font: unset;\n  letter-spacing: unset;\n  text-transform: unset;\n  text-decoration: unset;\n  box-shadow: unset;\n  outline: unset;\n}\n\n@keyframes page-toolbar-module__toolbarEnter___-WEE5 {\n  from {\n    opacity: 0;\n    transform: scale(0.5) rotate(90deg);\n  }\n  to {\n    opacity: 1;\n    transform: scale(1) rotate(0deg);\n  }\n}\n@keyframes page-toolbar-module__badgeEnter___tPtKD {\n  from {\n    opacity: 0;\n    transform: scale(0);\n  }\n  to {\n    opacity: 1;\n    transform: scale(1);\n  }\n}\n@keyframes page-toolbar-module__scaleIn___7i9nB {\n  from {\n    opacity: 0;\n    transform: scale(0.85);\n  }\n  to {\n    opacity: 1;\n    transform: scale(1);\n  }\n}\n@keyframes page-toolbar-module__scaleOut___Y1Ztx {\n  from {\n    opacity: 1;\n    transform: scale(1);\n  }\n  to {\n    opacity: 0;\n    transform: scale(0.85);\n  }\n}\n@keyframes page-toolbar-module__slideUp___496yM {\n  from {\n    opacity: 0;\n    transform: scale(0.85) translateY(8px);\n  }\n  to {\n    opacity: 1;\n    transform: scale(1) translateY(0);\n  }\n}\n@keyframes page-toolbar-module__slideDown___PRK4O {\n  from {\n    opacity: 1;\n    transform: scale(1) translateY(0);\n  }\n  to {\n    opacity: 0;\n    transform: scale(0.85) translateY(8px);\n  }\n}\n@keyframes page-toolbar-module__markerIn___A1Wxv {\n  0% {\n    opacity: 0;\n    transform: translate(-50%, -50%) scale(0.3);\n  }\n  100% {\n    opacity: 1;\n    transform: translate(-50%, -50%) scale(1);\n  }\n}\n@keyframes page-toolbar-module__markerOut___h-kr9 {\n  0% {\n    opacity: 1;\n    transform: translate(-50%, -50%) scale(1);\n  }\n  100% {\n    opacity: 0;\n    transform: translate(-50%, -50%) scale(0.3);\n  }\n}\n@keyframes page-toolbar-module__fadeIn___RJvi3 {\n  from {\n    opacity: 0;\n  }\n  to {\n    opacity: 1;\n  }\n}\n@keyframes page-toolbar-module__fadeOut___dAA6W {\n  from {\n    opacity: 1;\n  }\n  to {\n    opacity: 0;\n  }\n}\n@keyframes page-toolbar-module__tooltipIn___jMmfJ {\n  from {\n    opacity: 0;\n    transform: translateX(-50%) translateY(2px) scale(0.891);\n  }\n  to {\n    opacity: 1;\n    transform: translateX(-50%) translateY(0) scale(0.909);\n  }\n}\n@keyframes page-toolbar-module__hoverHighlightIn___f6l-B {\n  from {\n    opacity: 0;\n    transform: scale(0.98);\n  }\n  to {\n    opacity: 1;\n    transform: scale(1);\n  }\n}\n@keyframes page-toolbar-module__hoverTooltipIn___d-9u5 {\n  from {\n    opacity: 0;\n    transform: scale(0.95) translateY(4px);\n  }\n  to {\n    opacity: 1;\n    transform: scale(1) translateY(0);\n  }\n}\n@keyframes page-toolbar-module__settingsPanelIn___YMAX5 {\n  from {\n    opacity: 0;\n    transform: translateY(10px) scale(0.95);\n    filter: blur(5px);\n  }\n  to {\n    opacity: 1;\n    transform: translateY(0) scale(1);\n    filter: blur(0px);\n  }\n}\n@keyframes page-toolbar-module__settingsPanelOut___fv1FI {\n  from {\n    opacity: 1;\n    transform: translateY(0) scale(1);\n    filter: blur(0px);\n  }\n  to {\n    opacity: 0;\n    transform: translateY(20px) scale(0.95);\n    filter: blur(5px);\n  }\n}\n@keyframes page-toolbar-module__toolbarHide___Uhyz- {\n  from {\n    opacity: 1;\n    transform: scale(1);\n  }\n  to {\n    opacity: 0;\n    transform: scale(0.8);\n  }\n}\n.page-toolbar-module__toolbar___sBwIb {\n  position: fixed;\n  bottom: 1.25rem;\n  right: 1.25rem;\n  width: 297px;\n  z-index: 100000;\n  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;\n  pointer-events: none;\n  transition: left 0s, top 0s, right 0s, bottom 0s;\n}\n\n.page-toolbar-module__toolbarContainer___x5R-d {\n  user-select: none;\n  margin-left: auto;\n  align-self: flex-end;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  background: #1a1a1a;\n  color: #fff;\n  border: none;\n  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.1);\n  pointer-events: auto;\n  cursor: grab;\n  transition: width 0.4s cubic-bezier(0.19, 1, 0.22, 1), transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);\n}\n.page-toolbar-module__toolbarContainer___x5R-d.page-toolbar-module__dragging___UIy-x {\n  transition: width 0.4s cubic-bezier(0.19, 1, 0.22, 1);\n  cursor: grabbing;\n}\n.page-toolbar-module__toolbarContainer___x5R-d.page-toolbar-module__entrance___gAJff {\n  animation: page-toolbar-module__toolbarEnter___-WEE5 0.5s cubic-bezier(0.34, 1.2, 0.64, 1) forwards;\n}\n.page-toolbar-module__toolbarContainer___x5R-d.page-toolbar-module__hiding___mdJIe {\n  animation: page-toolbar-module__toolbarHide___Uhyz- 0.4s cubic-bezier(0.4, 0, 1, 1) forwards;\n  pointer-events: none;\n}\n.page-toolbar-module__toolbarContainer___x5R-d.page-toolbar-module__collapsed___Ep0vF {\n  width: 44px;\n  height: 44px;\n  border-radius: 22px;\n  padding: 0;\n  cursor: pointer;\n}\n.page-toolbar-module__toolbarContainer___x5R-d.page-toolbar-module__collapsed___Ep0vF svg {\n  margin-top: -1px;\n}\n.page-toolbar-module__toolbarContainer___x5R-d.page-toolbar-module__collapsed___Ep0vF:hover {\n  background: #2a2a2a;\n}\n.page-toolbar-module__toolbarContainer___x5R-d.page-toolbar-module__collapsed___Ep0vF:active {\n  transform: scale(0.95);\n}\n.page-toolbar-module__toolbarContainer___x5R-d.page-toolbar-module__expanded___HKRxf {\n  height: 44px;\n  border-radius: 1.5rem;\n  padding: 0.375rem;\n  width: 257px;\n}\n.page-toolbar-module__toolbarContainer___x5R-d.page-toolbar-module__expanded___HKRxf.page-toolbar-module__serverConnected___AgpbE {\n  width: 297px;\n}\n\n.page-toolbar-module__toggleContent___uFPh5 {\n  position: absolute;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  transition: opacity 0.1s cubic-bezier(0.19, 1, 0.22, 1);\n}\n.page-toolbar-module__toggleContent___uFPh5.page-toolbar-module__visible___0P5dl {\n  opacity: 1;\n  visibility: visible;\n  pointer-events: auto;\n}\n.page-toolbar-module__toggleContent___uFPh5.page-toolbar-module__hidden___rLRX- {\n  opacity: 0;\n  pointer-events: none;\n}\n\n.page-toolbar-module__controlsContent___3c09P {\n  display: flex;\n  align-items: center;\n  gap: 0.375rem;\n  transition: filter 0.8s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.8s cubic-bezier(0.19, 1, 0.22, 1), transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);\n}\n.page-toolbar-module__controlsContent___3c09P.page-toolbar-module__visible___0P5dl {\n  opacity: 1;\n  filter: blur(0px);\n  transform: scale(1);\n  visibility: visible;\n  pointer-events: auto;\n}\n.page-toolbar-module__controlsContent___3c09P.page-toolbar-module__hidden___rLRX- {\n  pointer-events: none;\n  opacity: 0;\n  filter: blur(10px);\n  transform: scale(0.4);\n}\n\n.page-toolbar-module__badge___d2Sgd {\n  position: absolute;\n  top: -13px;\n  right: -13px;\n  user-select: none;\n  min-width: 18px;\n  height: 18px;\n  padding: 0 5px;\n  border-radius: 9px;\n  background: #3c82f7;\n  color: white;\n  font-size: 0.625rem;\n  font-weight: 600;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.04);\n  opacity: 1;\n  transition: transform 0.3s ease, opacity 0.2s ease;\n  transform: scale(1);\n}\n.page-toolbar-module__badge___d2Sgd.page-toolbar-module__fadeOut___dAA6W {\n  opacity: 0;\n  transform: scale(0);\n  pointer-events: none;\n}\n.page-toolbar-module__badge___d2Sgd.page-toolbar-module__entrance___gAJff {\n  animation: page-toolbar-module__badgeEnter___tPtKD 0.3s cubic-bezier(0.34, 1.2, 0.64, 1) 0.4s both;\n}\n\n.page-toolbar-module__controlButton___ppLrv {\n  position: relative;\n  cursor: pointer !important;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  width: 34px;\n  height: 34px;\n  border-radius: 50%;\n  border: none;\n  background: transparent;\n  color: rgba(255, 255, 255, 0.85);\n  transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease, opacity 0.2s ease;\n}\n.page-toolbar-module__controlButton___ppLrv:hover:not(:disabled):not([data-active=true]):not([data-failed=true]):not([data-auto-sync=true]):not([data-error=true]):not([data-no-hover=true]) {\n  background: rgba(255, 255, 255, 0.12);\n  color: #fff;\n}\n.page-toolbar-module__controlButton___ppLrv:active:not(:disabled) {\n  transform: scale(0.92);\n}\n.page-toolbar-module__controlButton___ppLrv:disabled {\n  opacity: 0.35;\n  cursor: not-allowed;\n}\n.page-toolbar-module__controlButton___ppLrv[data-active=true] {\n  color: #3c82f7;\n  background: rgba(60, 130, 247, 0.25);\n}\n.page-toolbar-module__controlButton___ppLrv[data-error=true] {\n  color: #ff3b30;\n  background: rgba(255, 59, 48, 0.25);\n}\n.page-toolbar-module__controlButton___ppLrv[data-danger]:hover:not(:disabled):not([data-active=true]):not([data-failed=true]) {\n  background: rgba(255, 59, 48, 0.25);\n  color: #ff3b30;\n}\n.page-toolbar-module__controlButton___ppLrv[data-no-hover=true], .page-toolbar-module__controlButton___ppLrv.page-toolbar-module__statusShowing___F-Tku {\n  cursor: default !important;\n  pointer-events: none;\n  background: transparent !important;\n}\n.page-toolbar-module__controlButton___ppLrv[data-auto-sync=true] {\n  color: #34c759;\n  background: transparent;\n  cursor: default;\n}\n.page-toolbar-module__controlButton___ppLrv[data-failed=true] {\n  color: #ff3b30;\n  background: rgba(255, 59, 48, 0.25);\n}\n\n.page-toolbar-module__buttonBadge___ID4id {\n  position: absolute;\n  top: 0px;\n  right: 0px;\n  min-width: 16px;\n  height: 16px;\n  padding: 0 4px;\n  border-radius: 8px;\n  background: #3c82f7;\n  color: white;\n  font-size: 0.625rem;\n  font-weight: 600;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  box-shadow: 0 0 0 2px #1a1a1a, 0 1px 3px rgba(0, 0, 0, 0.2);\n  pointer-events: none;\n}\n.page-toolbar-module__buttonBadge___ID4id.page-toolbar-module__light___OkEHy {\n  box-shadow: 0 0 0 2px #fff, 0 1px 3px rgba(0, 0, 0, 0.2);\n}\n\n@keyframes page-toolbar-module__mcpIndicatorPulseConnected___0ghgC {\n  0%, 100% {\n    box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.5);\n  }\n  50% {\n    box-shadow: 0 0 0 5px rgba(52, 199, 89, 0);\n  }\n}\n@keyframes page-toolbar-module__mcpIndicatorPulseConnecting___kYfpu {\n  0%, 100% {\n    box-shadow: 0 0 0 0 rgba(245, 166, 35, 0.5);\n  }\n  50% {\n    box-shadow: 0 0 0 5px rgba(245, 166, 35, 0);\n  }\n}\n.page-toolbar-module__mcpIndicator___KqlFK {\n  position: absolute;\n  top: 3px;\n  right: 3px;\n  width: 6px;\n  height: 6px;\n  border-radius: 50%;\n  pointer-events: none;\n  transition: background 0.3s ease, opacity 0.15s ease, transform 0.15s ease;\n  opacity: 1;\n  transform: scale(1);\n}\n.page-toolbar-module__mcpIndicator___KqlFK.page-toolbar-module__connected___bd4g7 {\n  background: #34c759;\n  animation: page-toolbar-module__mcpIndicatorPulseConnected___0ghgC 2.5s ease-in-out infinite;\n}\n.page-toolbar-module__mcpIndicator___KqlFK.page-toolbar-module__connecting___l9kzm {\n  background: #f5a623;\n  animation: page-toolbar-module__mcpIndicatorPulseConnecting___kYfpu 1.5s ease-in-out infinite;\n}\n.page-toolbar-module__mcpIndicator___KqlFK.page-toolbar-module__hidden___rLRX- {\n  opacity: 0;\n  transform: scale(0);\n  animation: none;\n}\n\n@keyframes page-toolbar-module__connectionPulse___Mb8JU {\n  0%, 100% {\n    opacity: 1;\n    transform: scale(1);\n  }\n  50% {\n    opacity: 0.6;\n    transform: scale(0.9);\n  }\n}\n.page-toolbar-module__connectionIndicatorWrapper___xmyKM {\n  width: 8px;\n  height: 34px;\n  margin-left: 6px;\n  margin-right: 6px;\n}\n\n.page-toolbar-module__connectionIndicator___0gwMz {\n  position: relative;\n  width: 8px;\n  height: 8px;\n  border-radius: 50%;\n  opacity: 0;\n  transition: opacity 0.3s ease, background 0.3s ease;\n  cursor: default;\n}\n\n.page-toolbar-module__connectionIndicatorVisible___L-bAC {\n  opacity: 1;\n}\n\n.page-toolbar-module__connectionIndicatorConnected___I2ODc {\n  background: #34c759;\n  animation: page-toolbar-module__connectionPulse___Mb8JU 2.5s ease-in-out infinite;\n}\n\n.page-toolbar-module__connectionIndicatorDisconnected___s2kSH {\n  background: #ff3b30;\n  animation: none;\n}\n\n.page-toolbar-module__connectionIndicatorConnecting___IjG3P {\n  background: #f59e0b;\n  animation: page-toolbar-module__connectionPulse___Mb8JU 1s ease-in-out infinite;\n}\n\n.page-toolbar-module__buttonWrapper___Z2afJ {\n  position: relative;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n}\n.page-toolbar-module__buttonWrapper___Z2afJ:hover .page-toolbar-module__buttonTooltip___AetOW {\n  opacity: 1;\n  visibility: visible;\n  transform: translateX(-50%) scale(1);\n  transition-delay: 0.85s;\n}\n.page-toolbar-module__buttonWrapper___Z2afJ:has(.page-toolbar-module__controlButton___ppLrv:disabled):hover .page-toolbar-module__buttonTooltip___AetOW {\n  opacity: 0;\n  visibility: hidden;\n}\n\n.page-toolbar-module__tooltipsInSession___DbxC9 .page-toolbar-module__buttonWrapper___Z2afJ:hover .page-toolbar-module__buttonTooltip___AetOW {\n  transition-delay: 0s;\n}\n\n.page-toolbar-module__sendButtonWrapper___naR5s {\n  width: 0;\n  opacity: 0;\n  overflow: hidden;\n  pointer-events: none;\n  margin-left: -0.375rem;\n  transition: width 0.4s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.3s cubic-bezier(0.19, 1, 0.22, 1), margin 0.4s cubic-bezier(0.19, 1, 0.22, 1);\n}\n.page-toolbar-module__sendButtonWrapper___naR5s .page-toolbar-module__controlButton___ppLrv {\n  transform: scale(0.8);\n  transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);\n}\n.page-toolbar-module__sendButtonWrapper___naR5s.page-toolbar-module__sendButtonVisible___3ItIp {\n  width: 34px;\n  opacity: 1;\n  overflow: visible;\n  pointer-events: auto;\n  margin-left: 0;\n}\n.page-toolbar-module__sendButtonWrapper___naR5s.page-toolbar-module__sendButtonVisible___3ItIp .page-toolbar-module__controlButton___ppLrv {\n  transform: scale(1);\n}\n\n.page-toolbar-module__buttonTooltip___AetOW {\n  position: absolute;\n  bottom: calc(100% + 14px);\n  left: 50%;\n  transform: translateX(-50%) scale(0.95);\n  padding: 6px 10px;\n  background: #1a1a1a;\n  color: rgba(255, 255, 255, 0.9);\n  font-size: 12px;\n  font-weight: 500;\n  border-radius: 8px;\n  white-space: nowrap;\n  opacity: 0;\n  visibility: hidden;\n  pointer-events: none;\n  z-index: 100001;\n  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);\n  transition: opacity 0.135s ease, transform 0.135s ease, visibility 0.135s ease;\n}\n.page-toolbar-module__buttonTooltip___AetOW::after {\n  content: "";\n  position: absolute;\n  top: calc(100% - 4px);\n  left: 50%;\n  transform: translateX(-50%) rotate(45deg);\n  width: 8px;\n  height: 8px;\n  background: #1a1a1a;\n  border-radius: 0 0 2px 0;\n}\n\n.page-toolbar-module__shortcut___dVvrO {\n  margin-left: 4px;\n  opacity: 0.5;\n}\n\n.page-toolbar-module__tooltipBelow___4zzOD .page-toolbar-module__buttonTooltip___AetOW {\n  bottom: auto;\n  top: calc(100% + 14px);\n  transform: translateX(-50%) scale(0.95);\n}\n.page-toolbar-module__tooltipBelow___4zzOD .page-toolbar-module__buttonTooltip___AetOW::after {\n  top: -4px;\n  bottom: auto;\n  border-radius: 2px 0 0 0;\n}\n\n.page-toolbar-module__tooltipBelow___4zzOD .page-toolbar-module__buttonWrapper___Z2afJ:hover .page-toolbar-module__buttonTooltip___AetOW {\n  transform: translateX(-50%) scale(1);\n}\n\n.page-toolbar-module__tooltipsHidden___1NAj0 .page-toolbar-module__buttonTooltip___AetOW {\n  opacity: 0 !important;\n  visibility: hidden !important;\n  transition: none !important;\n}\n\n.page-toolbar-module__tooltipVisible___Z9IMh,\n.page-toolbar-module__tooltipsHidden___1NAj0 .page-toolbar-module__tooltipVisible___Z9IMh {\n  opacity: 1 !important;\n  visibility: visible !important;\n  transform: translateX(-50%) scale(1) !important;\n  transition-delay: 0s !important;\n}\n\n.page-toolbar-module__buttonWrapperAlignLeft___fQ8G3 .page-toolbar-module__buttonTooltip___AetOW {\n  left: 50%;\n  transform: translateX(-12px) scale(0.95);\n}\n.page-toolbar-module__buttonWrapperAlignLeft___fQ8G3 .page-toolbar-module__buttonTooltip___AetOW::after {\n  left: 16px;\n}\n.page-toolbar-module__buttonWrapperAlignLeft___fQ8G3:hover .page-toolbar-module__buttonTooltip___AetOW {\n  transform: translateX(-12px) scale(1);\n}\n\n.page-toolbar-module__tooltipBelow___4zzOD .page-toolbar-module__buttonWrapperAlignLeft___fQ8G3 .page-toolbar-module__buttonTooltip___AetOW {\n  transform: translateX(-12px) scale(0.95);\n}\n.page-toolbar-module__tooltipBelow___4zzOD .page-toolbar-module__buttonWrapperAlignLeft___fQ8G3:hover .page-toolbar-module__buttonTooltip___AetOW {\n  transform: translateX(-12px) scale(1);\n}\n\n.page-toolbar-module__buttonWrapperAlignRight___mSVi3 .page-toolbar-module__buttonTooltip___AetOW {\n  left: 50%;\n  transform: translateX(calc(-100% + 12px)) scale(0.95);\n}\n.page-toolbar-module__buttonWrapperAlignRight___mSVi3 .page-toolbar-module__buttonTooltip___AetOW::after {\n  left: auto;\n  right: 8px;\n}\n.page-toolbar-module__buttonWrapperAlignRight___mSVi3:hover .page-toolbar-module__buttonTooltip___AetOW {\n  transform: translateX(calc(-100% + 12px)) scale(1);\n}\n\n.page-toolbar-module__tooltipBelow___4zzOD .page-toolbar-module__buttonWrapperAlignRight___mSVi3 .page-toolbar-module__buttonTooltip___AetOW {\n  transform: translateX(calc(-100% + 12px)) scale(0.95);\n}\n.page-toolbar-module__tooltipBelow___4zzOD .page-toolbar-module__buttonWrapperAlignRight___mSVi3:hover .page-toolbar-module__buttonTooltip___AetOW {\n  transform: translateX(calc(-100% + 12px)) scale(1);\n}\n\n.page-toolbar-module__divider___cL2DV {\n  width: 1px;\n  height: 12px;\n  background: rgba(255, 255, 255, 0.15);\n  margin: 0 0.125rem;\n}\n\n.page-toolbar-module__overlay___Zg2Lx {\n  position: fixed;\n  inset: 0;\n  z-index: 99997;\n  pointer-events: none;\n}\n.page-toolbar-module__overlay___Zg2Lx > * {\n  pointer-events: auto;\n}\n\n.page-toolbar-module__hoverHighlight___x-hcw {\n  position: fixed;\n  border: 2px solid rgba(60, 130, 247, 0.5);\n  border-radius: 4px;\n  pointer-events: none !important;\n  background: rgba(60, 130, 247, 0.04);\n  box-sizing: border-box;\n  will-change: opacity;\n  contain: layout style;\n}\n.page-toolbar-module__hoverHighlight___x-hcw.page-toolbar-module__enter___MokYX {\n  animation: page-toolbar-module__hoverHighlightIn___f6l-B 0.12s ease-out forwards;\n}\n\n.page-toolbar-module__multiSelectOutline___GtfT4 {\n  position: fixed;\n  border: 2px dashed rgba(52, 199, 89, 0.6);\n  border-radius: 4px;\n  pointer-events: none !important;\n  background: rgba(52, 199, 89, 0.05);\n  box-sizing: border-box;\n  will-change: opacity;\n}\n.page-toolbar-module__multiSelectOutline___GtfT4.page-toolbar-module__enter___MokYX {\n  animation: page-toolbar-module__fadeIn___RJvi3 0.15s ease-out forwards;\n}\n.page-toolbar-module__multiSelectOutline___GtfT4.page-toolbar-module__exit___6NIVt {\n  animation: page-toolbar-module__fadeOut___dAA6W 0.15s ease-out forwards;\n}\n\n.page-toolbar-module__singleSelectOutline___lDMOt {\n  position: fixed;\n  border: 2px solid rgba(60, 130, 247, 0.6);\n  border-radius: 4px;\n  pointer-events: none !important;\n  background: rgba(60, 130, 247, 0.05);\n  box-sizing: border-box;\n  will-change: opacity;\n}\n.page-toolbar-module__singleSelectOutline___lDMOt.page-toolbar-module__enter___MokYX {\n  animation: page-toolbar-module__fadeIn___RJvi3 0.15s ease-out forwards;\n}\n.page-toolbar-module__singleSelectOutline___lDMOt.page-toolbar-module__exit___6NIVt {\n  animation: page-toolbar-module__fadeOut___dAA6W 0.15s ease-out forwards;\n}\n\n.page-toolbar-module__hoverTooltip___YHQxN {\n  position: fixed;\n  font-size: 0.6875rem;\n  font-weight: 500;\n  color: #fff;\n  background: rgba(0, 0, 0, 0.85);\n  padding: 0.35rem 0.6rem;\n  border-radius: 0.375rem;\n  pointer-events: none !important;\n  white-space: nowrap;\n  max-width: 280px;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n.page-toolbar-module__hoverTooltip___YHQxN.page-toolbar-module__enter___MokYX {\n  animation: page-toolbar-module__hoverTooltipIn___d-9u5 0.1s ease-out forwards;\n}\n\n.page-toolbar-module__hoverReactPath___gsH0- {\n  font-size: 0.625rem;\n  color: rgba(255, 255, 255, 0.6);\n  margin-bottom: 0.15rem;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.page-toolbar-module__hoverElementName___9Wxnf {\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.page-toolbar-module__markersLayer___hXKyR {\n  position: absolute;\n  top: 0;\n  left: 0;\n  right: 0;\n  height: 0;\n  z-index: 99998;\n  pointer-events: none;\n}\n.page-toolbar-module__markersLayer___hXKyR > * {\n  pointer-events: auto;\n}\n\n.page-toolbar-module__fixedMarkersLayer___0QARr {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  z-index: 99998;\n  pointer-events: none;\n}\n.page-toolbar-module__fixedMarkersLayer___0QARr > * {\n  pointer-events: auto;\n}\n\n.page-toolbar-module__marker___c0doQ {\n  position: absolute;\n  width: 22px;\n  height: 22px;\n  background: #3c82f7;\n  color: white;\n  border-radius: 50%;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 0.6875rem;\n  font-weight: 600;\n  transform: translate(-50%, -50%) scale(1);\n  opacity: 1;\n  cursor: pointer;\n  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(0, 0, 0, 0.04);\n  user-select: none;\n  will-change: transform, opacity;\n  contain: layout style;\n  z-index: 1;\n}\n.page-toolbar-module__marker___c0doQ:hover {\n  z-index: 2;\n}\n.page-toolbar-module__marker___c0doQ:not(.page-toolbar-module__enter___MokYX):not(.page-toolbar-module__exit___6NIVt):not(.page-toolbar-module__clearing___aXE1v) {\n  transition: background-color 0.15s ease, transform 0.1s ease;\n}\n.page-toolbar-module__marker___c0doQ.page-toolbar-module__enter___MokYX {\n  animation: page-toolbar-module__markerIn___A1Wxv 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;\n}\n.page-toolbar-module__marker___c0doQ.page-toolbar-module__exit___6NIVt {\n  animation: page-toolbar-module__markerOut___h-kr9 0.2s ease-out both;\n  pointer-events: none;\n}\n.page-toolbar-module__marker___c0doQ.page-toolbar-module__clearing___aXE1v {\n  animation: page-toolbar-module__markerOut___h-kr9 0.15s ease-out both;\n  pointer-events: none;\n}\n.page-toolbar-module__marker___c0doQ:not(.page-toolbar-module__enter___MokYX):not(.page-toolbar-module__exit___6NIVt):not(.page-toolbar-module__clearing___aXE1v):hover {\n  transform: translate(-50%, -50%) scale(1.1);\n}\n.page-toolbar-module__marker___c0doQ.page-toolbar-module__pending___Ln-lV {\n  position: fixed;\n  background: #3c82f7;\n}\n.page-toolbar-module__marker___c0doQ.page-toolbar-module__fixed___U4mr3 {\n  position: fixed;\n}\n.page-toolbar-module__marker___c0doQ.page-toolbar-module__multiSelect___Z-PYZ {\n  background: #34c759;\n  width: 26px;\n  height: 26px;\n  border-radius: 6px;\n  font-size: 0.75rem;\n}\n.page-toolbar-module__marker___c0doQ.page-toolbar-module__multiSelect___Z-PYZ.page-toolbar-module__pending___Ln-lV {\n  background: #34c759;\n}\n.page-toolbar-module__marker___c0doQ.page-toolbar-module__hovered___2HwnW {\n  background: #ff3b30;\n}\n\n.page-toolbar-module__renumber___rVqlG {\n  display: block;\n  animation: page-toolbar-module__renumberRoll___zbFKe 0.2s ease-out;\n}\n\n@keyframes page-toolbar-module__renumberRoll___zbFKe {\n  0% {\n    transform: translateX(-40%);\n    opacity: 0;\n  }\n  100% {\n    transform: translateX(0);\n    opacity: 1;\n  }\n}\n.page-toolbar-module__markerTooltip___oBqwC {\n  position: absolute;\n  top: calc(100% + 10px);\n  left: 50%;\n  transform: translateX(-50%) scale(0.909);\n  z-index: 100002;\n  background: #1a1a1a;\n  padding: 8px 0.75rem;\n  border-radius: 0.75rem;\n  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;\n  font-weight: 400;\n  color: #fff;\n  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.08);\n  min-width: 120px;\n  max-width: 200px;\n  pointer-events: none;\n  cursor: default;\n}\n.page-toolbar-module__markerTooltip___oBqwC.page-toolbar-module__enter___MokYX {\n  animation: page-toolbar-module__tooltipIn___jMmfJ 0.1s ease-out forwards;\n}\n\n.page-toolbar-module__markerQuote___9Qfoa {\n  display: block;\n  font-size: 12px;\n  font-style: italic;\n  color: rgba(255, 255, 255, 0.6);\n  margin-bottom: 0.3125rem;\n  line-height: 1.4;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.page-toolbar-module__markerNote___HOmyF {\n  display: block;\n  font-size: 13px;\n  font-weight: 400;\n  line-height: 1.4;\n  color: #fff;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  padding-bottom: 2px;\n}\n\n.page-toolbar-module__markerHint___rUwXR {\n  display: block;\n  font-size: 0.625rem;\n  font-weight: 400;\n  color: rgba(255, 255, 255, 0.6);\n  margin-top: 0.375rem;\n  white-space: nowrap;\n}\n\n.page-toolbar-module__settingsPanel___C28ZP {\n  position: absolute;\n  right: 5px;\n  bottom: calc(100% + 0.5rem);\n  z-index: 1;\n  overflow: hidden;\n  background: #1c1c1c;\n  border-radius: 1rem;\n  padding: 13px 0 16px;\n  min-width: 205px;\n  cursor: default;\n  opacity: 1;\n  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.04);\n  transition: background 0.25s ease, box-shadow 0.25s ease;\n}\n.page-toolbar-module__settingsPanel___C28ZP::before, .page-toolbar-module__settingsPanel___C28ZP::after {\n  content: "";\n  position: absolute;\n  top: 0;\n  bottom: 0;\n  width: 16px;\n  z-index: 2;\n  pointer-events: none;\n}\n.page-toolbar-module__settingsPanel___C28ZP::before {\n  left: 0;\n  background: linear-gradient(to right, #1c1c1c 0%, transparent 100%);\n}\n.page-toolbar-module__settingsPanel___C28ZP::after {\n  right: 0;\n  background: linear-gradient(to left, #1c1c1c 0%, transparent 100%);\n}\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsHeader___Vu98j,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsBrand___euQq5,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsBrandSlash___RxG4a,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsVersion___N-GPL,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsSection___kh4vw,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsLabel___Ai4Q-,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__cycleButton___uS15m,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__cycleDot___CW1tR,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__dropdownButton___qTm2f,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__toggleLabel___f3w7K,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__customCheckbox___X5b-y,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__sliderLabel___qK6W0,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__slider___XkOCz,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__helpIcon___PGlAb,\n.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__themeToggle___vLtgF {\n  transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease;\n}\n.page-toolbar-module__settingsPanel___C28ZP.page-toolbar-module__enter___MokYX {\n  opacity: 1;\n  transform: translateY(0) scale(1);\n  filter: blur(0px);\n  transition: opacity 0.2s ease, transform 0.2s ease, filter 0.2s ease;\n}\n.page-toolbar-module__settingsPanel___C28ZP.page-toolbar-module__exit___6NIVt {\n  opacity: 0;\n  transform: translateY(8px) scale(0.95);\n  filter: blur(5px);\n  pointer-events: none;\n  transition: opacity 0.1s ease, transform 0.1s ease, filter 0.1s ease;\n}\n.page-toolbar-module__settingsPanel___C28ZP.page-toolbar-module__dark___fp8IT {\n  background: #1a1a1a;\n  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.08);\n}\n.page-toolbar-module__settingsPanel___C28ZP.page-toolbar-module__dark___fp8IT .page-toolbar-module__settingsLabel___Ai4Q- {\n  color: rgba(255, 255, 255, 0.6);\n}\n.page-toolbar-module__settingsPanel___C28ZP.page-toolbar-module__dark___fp8IT .page-toolbar-module__settingsOption___X1xKK {\n  color: rgba(255, 255, 255, 0.85);\n}\n.page-toolbar-module__settingsPanel___C28ZP.page-toolbar-module__dark___fp8IT .page-toolbar-module__settingsOption___X1xKK:hover {\n  background: rgba(255, 255, 255, 0.1);\n}\n.page-toolbar-module__settingsPanel___C28ZP.page-toolbar-module__dark___fp8IT .page-toolbar-module__settingsOption___X1xKK.page-toolbar-module__selected___MO3j6 {\n  background: rgba(255, 255, 255, 0.15);\n  color: #fff;\n}\n.page-toolbar-module__settingsPanel___C28ZP.page-toolbar-module__dark___fp8IT .page-toolbar-module__toggleLabel___f3w7K {\n  color: rgba(255, 255, 255, 0.85);\n}\n\n.page-toolbar-module__settingsPanelContainer___mjMeX {\n  overflow: visible;\n  position: relative;\n  display: flex;\n  padding: 0 1rem;\n}\n.page-toolbar-module__settingsPanelContainer___mjMeX.page-toolbar-module__transitioning___tljBd {\n  overflow-x: clip;\n  overflow-y: visible;\n}\n\n.page-toolbar-module__settingsPage___D45Js {\n  min-width: 100%;\n  flex-shrink: 0;\n  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease-out;\n  opacity: 1;\n}\n\n.page-toolbar-module__settingsPage___D45Js.page-toolbar-module__slideLeft___Tz-ss {\n  transform: translateX(-100%);\n  opacity: 0;\n}\n\n.page-toolbar-module__automationsPage___Qf3xs {\n  position: absolute;\n  top: 0;\n  left: 100%;\n  width: 100%;\n  height: 100%;\n  padding: 3px 1rem 0;\n  box-sizing: border-box;\n  display: flex;\n  flex-direction: column;\n  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease-out 0.1s;\n  opacity: 0;\n}\n\n.page-toolbar-module__automationsPage___Qf3xs.page-toolbar-module__slideIn___Fhz3M {\n  transform: translateX(-100%);\n  opacity: 1;\n}\n\n.page-toolbar-module__settingsNavLink___QulVN {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  width: 100%;\n  padding: 0;\n  border: none;\n  background: transparent;\n  font-family: inherit;\n  font-size: 0.8125rem;\n  font-weight: 400;\n  color: rgba(255, 255, 255, 0.5);\n  cursor: pointer;\n  transition: color 0.15s ease;\n}\n.page-toolbar-module__settingsNavLink___QulVN:hover {\n  color: rgba(255, 255, 255, 0.9);\n}\n.page-toolbar-module__settingsNavLink___QulVN.page-toolbar-module__light___OkEHy {\n  color: rgba(0, 0, 0, 0.5);\n}\n.page-toolbar-module__settingsNavLink___QulVN.page-toolbar-module__light___OkEHy:hover {\n  color: rgba(0, 0, 0, 0.8);\n}\n.page-toolbar-module__settingsNavLink___QulVN svg {\n  color: rgba(255, 255, 255, 0.4);\n  transition: color 0.15s ease;\n}\n.page-toolbar-module__settingsNavLink___QulVN:hover svg {\n  color: #fff;\n}\n.page-toolbar-module__settingsNavLink___QulVN.page-toolbar-module__light___OkEHy svg {\n  color: rgba(0, 0, 0, 0.25);\n}\n.page-toolbar-module__settingsNavLink___QulVN.page-toolbar-module__light___OkEHy:hover svg {\n  color: rgba(0, 0, 0, 0.8);\n}\n\n.page-toolbar-module__settingsNavLinkRight___2sIrs {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n}\n\n.page-toolbar-module__mcpNavIndicator___nHMuu {\n  width: 8px;\n  height: 8px;\n  border-radius: 50%;\n  flex-shrink: 0;\n}\n.page-toolbar-module__mcpNavIndicator___nHMuu.page-toolbar-module__connected___bd4g7 {\n  background: #34c759;\n  animation: page-toolbar-module__mcpPulse___JirbR 2.5s ease-in-out infinite;\n}\n.page-toolbar-module__mcpNavIndicator___nHMuu.page-toolbar-module__connecting___l9kzm {\n  background: #f5a623;\n  animation: page-toolbar-module__mcpPulse___JirbR 1.5s ease-in-out infinite;\n}\n\n.page-toolbar-module__settingsBackButton___f3AO8 {\n  display: flex;\n  align-items: center;\n  gap: 4px;\n  padding: 6px 0 12px 0;\n  margin: -6px 0 0.5rem 0;\n  border: none;\n  border-bottom: 1px solid rgba(255, 255, 255, 0.07);\n  border-radius: 0;\n  background: transparent;\n  font-family: inherit;\n  font-size: 0.8125rem;\n  font-weight: 500;\n  letter-spacing: -0.15px;\n  color: #fff;\n  cursor: pointer;\n  transition: transform 0.12s cubic-bezier(0.32, 0.72, 0, 1);\n}\n.page-toolbar-module__settingsBackButton___f3AO8 svg {\n  opacity: 0.4;\n  flex-shrink: 0;\n  transition: opacity 0.15s ease, transform 0.18s cubic-bezier(0.32, 0.72, 0, 1);\n}\n.page-toolbar-module__settingsBackButton___f3AO8:hover svg {\n  opacity: 1;\n}\n.page-toolbar-module__settingsBackButton___f3AO8.page-toolbar-module__light___OkEHy {\n  color: rgba(0, 0, 0, 0.85);\n  border-bottom-color: rgba(0, 0, 0, 0.08);\n}\n\n.page-toolbar-module__automationHeader___A77vC {\n  display: flex;\n  align-items: center;\n  gap: 0.125rem;\n  font-size: 0.8125rem;\n  font-weight: 400;\n  color: #fff;\n}\n.page-toolbar-module__automationHeader___A77vC .page-toolbar-module__helpIcon___PGlAb svg {\n  transform: none;\n}\n.page-toolbar-module__automationHeader___A77vC.page-toolbar-module__light___OkEHy {\n  color: rgba(0, 0, 0, 0.85);\n}\n\n.page-toolbar-module__automationDescription___0scee {\n  font-size: 0.6875rem;\n  font-weight: 300;\n  color: rgba(255, 255, 255, 0.5);\n  margin-top: 2px;\n  line-height: 14px;\n}\n.page-toolbar-module__automationDescription___0scee.page-toolbar-module__light___OkEHy {\n  color: rgba(0, 0, 0, 0.5);\n}\n\n.page-toolbar-module__learnMoreLink___PkVsi {\n  color: rgba(255, 255, 255, 0.8);\n  text-decoration: underline dotted;\n  text-decoration-color: rgba(255, 255, 255, 0.2);\n  text-underline-offset: 2px;\n  transition: color 0.15s ease;\n}\n.page-toolbar-module__learnMoreLink___PkVsi:hover {\n  color: #fff;\n}\n.page-toolbar-module__learnMoreLink___PkVsi.page-toolbar-module__light___OkEHy {\n  color: rgba(0, 0, 0, 0.6);\n  text-decoration-color: rgba(0, 0, 0, 0.2);\n}\n.page-toolbar-module__learnMoreLink___PkVsi.page-toolbar-module__light___OkEHy:hover {\n  color: rgba(0, 0, 0, 0.85);\n}\n\n.page-toolbar-module__autoSendRow___er1rz {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n}\n\n.page-toolbar-module__autoSendLabel___JilZW {\n  font-size: 0.6875rem;\n  font-weight: 400;\n  color: rgba(255, 255, 255, 0.4);\n  transition: color 0.15s ease;\n}\n.page-toolbar-module__autoSendLabel___JilZW.page-toolbar-module__active___eCNCs {\n  color: #66b8ff;\n}\n.page-toolbar-module__autoSendLabel___JilZW.page-toolbar-module__light___OkEHy {\n  color: rgba(0, 0, 0, 0.4);\n}\n.page-toolbar-module__autoSendLabel___JilZW.page-toolbar-module__light___OkEHy.page-toolbar-module__active___eCNCs {\n  color: #3c82f7;\n}\n\n.page-toolbar-module__webhookUrlInput___QcPU3 {\n  display: block;\n  width: 100%;\n  flex: 1;\n  min-height: 60px;\n  box-sizing: border-box;\n  margin-top: 11px;\n  padding: 8px 10px;\n  border: 1px solid rgba(255, 255, 255, 0.1);\n  border-radius: 6px;\n  background: rgba(255, 255, 255, 0.03);\n  font-family: inherit;\n  font-size: 0.75rem;\n  font-weight: 400;\n  color: #fff;\n  outline: none;\n  resize: none;\n  cursor: text !important;\n  user-select: text;\n  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;\n}\n.page-toolbar-module__webhookUrlInput___QcPU3::placeholder {\n  color: rgba(255, 255, 255, 0.3);\n}\n.page-toolbar-module__webhookUrlInput___QcPU3:focus {\n  border-color: rgba(255, 255, 255, 0.3);\n  background: rgba(255, 255, 255, 0.08);\n}\n.page-toolbar-module__webhookUrlInput___QcPU3.page-toolbar-module__light___OkEHy {\n  border-color: rgba(0, 0, 0, 0.1);\n  background: rgba(0, 0, 0, 0.03);\n  color: rgba(0, 0, 0, 0.85);\n}\n.page-toolbar-module__webhookUrlInput___QcPU3.page-toolbar-module__light___OkEHy::placeholder {\n  color: rgba(0, 0, 0, 0.3);\n}\n.page-toolbar-module__webhookUrlInput___QcPU3.page-toolbar-module__light___OkEHy:focus {\n  border-color: rgba(0, 0, 0, 0.25);\n  background: rgba(0, 0, 0, 0.05);\n}\n\n.page-toolbar-module__settingsHeader___Vu98j {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  min-height: 24px;\n  margin-bottom: 0.5rem;\n  padding-bottom: 9px;\n  border-bottom: 1px solid rgba(255, 255, 255, 0.07);\n}\n\n.page-toolbar-module__settingsBrand___euQq5 {\n  font-size: 0.8125rem;\n  font-weight: 600;\n  letter-spacing: -0.0094em;\n  color: #fff;\n}\n\n.page-toolbar-module__settingsBrandSlash___RxG4a {\n  color: rgba(255, 255, 255, 0.5);\n}\n\n.page-toolbar-module__settingsVersion___N-GPL {\n  font-size: 11px;\n  font-weight: 400;\n  color: rgba(255, 255, 255, 0.4);\n  margin-left: auto;\n  letter-spacing: -0.0094em;\n}\n\n.page-toolbar-module__settingsSection___kh4vw + .page-toolbar-module__settingsSection___kh4vw {\n  margin-top: 0.5rem;\n  padding-top: 0.5rem;\n  border-top: 1px solid rgba(255, 255, 255, 0.07);\n}\n.page-toolbar-module__settingsSection___kh4vw.page-toolbar-module__settingsSectionExtraPadding___ti6XY {\n  padding-top: calc(0.5rem + 4px);\n}\n\n.page-toolbar-module__settingsSectionGrow___kVkby {\n  flex: 1;\n  display: flex;\n  flex-direction: column;\n}\n\n.page-toolbar-module__settingsRow___li31L {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  min-height: 24px;\n}\n.page-toolbar-module__settingsRow___li31L.page-toolbar-module__settingsRowMarginTop___Nk3bS {\n  margin-top: 8px;\n}\n\n.page-toolbar-module__dropdownContainer___FBf2c {\n  position: relative;\n}\n\n.page-toolbar-module__dropdownButton___qTm2f {\n  display: flex;\n  align-items: center;\n  gap: 0.5rem;\n  padding: 0.25rem 0.5rem;\n  border: none;\n  border-radius: 0.375rem;\n  background: transparent;\n  font-size: 0.8125rem;\n  font-weight: 600;\n  color: #fff;\n  cursor: pointer;\n  transition: background-color 0.15s ease, color 0.15s ease;\n  letter-spacing: -0.0094em;\n}\n.page-toolbar-module__dropdownButton___qTm2f:hover {\n  background: rgba(255, 255, 255, 0.08);\n}\n.page-toolbar-module__dropdownButton___qTm2f svg {\n  opacity: 0.6;\n}\n\n.page-toolbar-module__cycleButton___uS15m {\n  display: flex;\n  align-items: center;\n  gap: 0.5rem;\n  padding: 0;\n  border: none;\n  background: transparent;\n  font-size: 0.8125rem;\n  font-weight: 500;\n  color: #fff;\n  cursor: pointer;\n  letter-spacing: -0.0094em;\n}\n.page-toolbar-module__cycleButton___uS15m.page-toolbar-module__light___OkEHy {\n  color: rgba(0, 0, 0, 0.85);\n}\n.page-toolbar-module__cycleButton___uS15m:disabled {\n  opacity: 0.35;\n  cursor: not-allowed;\n}\n\n.page-toolbar-module__settingsRowDisabled___c4jKo .page-toolbar-module__settingsLabel___Ai4Q- {\n  color: rgba(255, 255, 255, 0.2);\n}\n.page-toolbar-module__settingsRowDisabled___c4jKo .page-toolbar-module__settingsLabel___Ai4Q-.page-toolbar-module__light___OkEHy {\n  color: rgba(0, 0, 0, 0.2);\n}\n.page-toolbar-module__settingsRowDisabled___c4jKo .page-toolbar-module__toggleSwitch___TTjxl {\n  opacity: 0.4;\n  cursor: not-allowed;\n}\n\n@keyframes page-toolbar-module__cycleTextIn___0H9ys {\n  0% {\n    opacity: 0;\n    transform: translateY(-6px);\n  }\n  100% {\n    opacity: 1;\n    transform: translateY(0);\n  }\n}\n.page-toolbar-module__cycleButtonText___EmmsR {\n  display: inline-block;\n  animation: page-toolbar-module__cycleTextIn___0H9ys 0.2s ease-out;\n}\n\n.page-toolbar-module__cycleDots___PXV30 {\n  display: flex;\n  flex-direction: column;\n  gap: 2px;\n}\n\n.page-toolbar-module__cycleDot___CW1tR {\n  width: 3px;\n  height: 3px;\n  border-radius: 50%;\n  background: rgba(255, 255, 255, 0.3);\n  transform: scale(0.667);\n  transition: background-color 0.25s ease-out, transform 0.25s ease-out;\n}\n.page-toolbar-module__cycleDot___CW1tR.page-toolbar-module__active___eCNCs {\n  background: #fff;\n  transform: scale(1);\n}\n.page-toolbar-module__cycleDot___CW1tR.page-toolbar-module__light___OkEHy {\n  background: rgba(0, 0, 0, 0.2);\n}\n.page-toolbar-module__cycleDot___CW1tR.page-toolbar-module__light___OkEHy.page-toolbar-module__active___eCNCs {\n  background: rgba(0, 0, 0, 0.7);\n}\n\n.page-toolbar-module__dropdownMenu___rHVad {\n  position: absolute;\n  right: 0;\n  top: calc(100% + 0.25rem);\n  background: #1a1a1a;\n  border-radius: 0.5rem;\n  padding: 0.25rem;\n  min-width: 120px;\n  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);\n  z-index: 10;\n  animation: page-toolbar-module__scaleIn___7i9nB 0.15s ease-out;\n}\n\n.page-toolbar-module__dropdownItem___a0PQp {\n  width: 100%;\n  display: flex;\n  align-items: center;\n  padding: 0.5rem 0.625rem;\n  border: none;\n  border-radius: 0.375rem;\n  background: transparent;\n  font-size: 0.8125rem;\n  font-weight: 500;\n  color: rgba(255, 255, 255, 0.85);\n  cursor: pointer;\n  text-align: left;\n  transition: background-color 0.15s ease, color 0.15s ease;\n  letter-spacing: -0.0094em;\n}\n.page-toolbar-module__dropdownItem___a0PQp:hover {\n  background: rgba(255, 255, 255, 0.08);\n}\n.page-toolbar-module__dropdownItem___a0PQp.page-toolbar-module__selected___MO3j6 {\n  background: rgba(255, 255, 255, 0.12);\n  color: #fff;\n  font-weight: 600;\n}\n\n.page-toolbar-module__settingsLabel___Ai4Q- {\n  font-size: 0.8125rem;\n  font-weight: 400;\n  letter-spacing: -0.0094em;\n  color: rgba(255, 255, 255, 0.5);\n  display: flex;\n  align-items: center;\n  gap: 0.125rem;\n}\n.page-toolbar-module__settingsLabel___Ai4Q-.page-toolbar-module__light___OkEHy {\n  color: rgba(0, 0, 0, 0.5);\n}\n\n.page-toolbar-module__settingsLabelMarker___ZbvBg {\n  padding-top: 3px;\n  margin-bottom: 10px;\n}\n\n.page-toolbar-module__settingsOptions___EZdOQ {\n  display: flex;\n  gap: 0.25rem;\n}\n\n.page-toolbar-module__settingsOption___X1xKK {\n  flex: 1;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  gap: 0.25rem;\n  padding: 0.375rem 0.5rem;\n  border: none;\n  border-radius: 0.375rem;\n  background: transparent;\n  font-size: 0.6875rem;\n  font-weight: 500;\n  color: rgba(0, 0, 0, 0.7);\n  cursor: pointer;\n  transition: background-color 0.15s ease, color 0.15s ease;\n}\n.page-toolbar-module__settingsOption___X1xKK:hover {\n  background: rgba(0, 0, 0, 0.05);\n}\n.page-toolbar-module__settingsOption___X1xKK.page-toolbar-module__selected___MO3j6 {\n  background: rgba(60, 130, 247, 0.15);\n  color: #3c82f7;\n}\n\n.page-toolbar-module__sliderContainer___HYHEn {\n  display: flex;\n  flex-direction: column;\n  gap: 0.5rem;\n}\n\n.page-toolbar-module__slider___XkOCz {\n  -webkit-appearance: none;\n  appearance: none;\n  width: 100%;\n  height: 4px;\n  background: rgba(255, 255, 255, 0.15);\n  border-radius: 2px;\n  outline: none;\n  cursor: pointer;\n}\n.page-toolbar-module__slider___XkOCz::-webkit-slider-thumb {\n  -webkit-appearance: none;\n  appearance: none;\n  width: 14px;\n  height: 14px;\n  background: white;\n  border-radius: 50%;\n  cursor: pointer;\n  transition: transform 0.15s ease, box-shadow 0.15s ease;\n  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);\n}\n.page-toolbar-module__slider___XkOCz::-moz-range-thumb {\n  width: 14px;\n  height: 14px;\n  background: white;\n  border: none;\n  border-radius: 50%;\n  cursor: pointer;\n  transition: transform 0.15s ease, box-shadow 0.15s ease;\n  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);\n}\n.page-toolbar-module__slider___XkOCz:hover::-webkit-slider-thumb {\n  transform: scale(1.15);\n  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);\n}\n.page-toolbar-module__slider___XkOCz:hover::-moz-range-thumb {\n  transform: scale(1.15);\n  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);\n}\n\n.page-toolbar-module__sliderLabels___J4-mc {\n  display: flex;\n  justify-content: space-between;\n}\n\n.page-toolbar-module__sliderLabel___qK6W0 {\n  font-size: 0.625rem;\n  font-weight: 500;\n  color: rgba(255, 255, 255, 0.4);\n  cursor: pointer;\n  transition: color 0.15s ease;\n}\n.page-toolbar-module__sliderLabel___qK6W0:hover {\n  color: rgba(255, 255, 255, 0.7);\n}\n.page-toolbar-module__sliderLabel___qK6W0.page-toolbar-module__active___eCNCs {\n  color: rgba(255, 255, 255, 0.9);\n}\n\n.page-toolbar-module__colorOptions___2P2Dw {\n  display: flex;\n  gap: 0.5rem;\n  margin-top: 0.375rem;\n  margin-bottom: 1px;\n}\n\n.page-toolbar-module__colorOption___oAKqy {\n  display: block;\n  width: 20px;\n  height: 20px;\n  border-radius: 50%;\n  border: 2px solid transparent;\n  cursor: pointer;\n  transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);\n}\n.page-toolbar-module__colorOption___oAKqy:hover {\n  transform: scale(1.15);\n}\n.page-toolbar-module__colorOption___oAKqy.page-toolbar-module__selected___MO3j6 {\n  transform: scale(0.83);\n}\n\n.page-toolbar-module__colorOptionRing___-Fehe {\n  display: flex;\n  width: 24px;\n  height: 24px;\n  border: 2px solid transparent;\n  border-radius: 50%;\n  transition: border-color 0.3s ease;\n}\n.page-toolbar-module__settingsToggle___X2LSX {\n  display: flex;\n  align-items: center;\n  gap: 0.5rem;\n  cursor: pointer;\n}\n.page-toolbar-module__settingsToggle___X2LSX + .page-toolbar-module__settingsToggle___X2LSX {\n  margin-top: calc(0.5rem + 6px);\n}\n.page-toolbar-module__settingsToggle___X2LSX input[type=checkbox] {\n  position: absolute;\n  opacity: 0;\n  width: 0;\n  height: 0;\n}\n.page-toolbar-module__settingsToggle___X2LSX.page-toolbar-module__settingsToggleMarginBottom___z9mxi {\n  margin-bottom: calc(0.5rem + 6px);\n}\n\n.page-toolbar-module__customCheckbox___X5b-y {\n  position: relative;\n  width: 14px;\n  height: 14px;\n  border: 1px solid rgba(255, 255, 255, 0.2);\n  border-radius: 4px;\n  background: rgba(255, 255, 255, 0.05);\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  flex-shrink: 0;\n  transition: background 0.25s ease, border-color 0.25s ease;\n}\n.page-toolbar-module__customCheckbox___X5b-y svg {\n  color: #1a1a1a;\n  opacity: 1;\n  transition: opacity 0.15s ease;\n}\ninput[type=checkbox]:checked + .page-toolbar-module__customCheckbox___X5b-y {\n  border-color: rgba(255, 255, 255, 0.3);\n  background: rgb(255, 255, 255);\n}\n.page-toolbar-module__customCheckbox___X5b-y.page-toolbar-module__light___OkEHy {\n  border: 1px solid rgba(0, 0, 0, 0.15);\n  background: #fff;\n}\n.page-toolbar-module__customCheckbox___X5b-y.page-toolbar-module__light___OkEHy.page-toolbar-module__checked___ey1iv {\n  border-color: #1a1a1a;\n  background: #1a1a1a;\n}\n.page-toolbar-module__customCheckbox___X5b-y.page-toolbar-module__light___OkEHy.page-toolbar-module__checked___ey1iv svg {\n  color: #fff;\n}\n\n.page-toolbar-module__toggleLabel___f3w7K {\n  font-size: 0.8125rem;\n  font-weight: 400;\n  color: rgba(255, 255, 255, 0.5);\n  letter-spacing: -0.0094em;\n  display: flex;\n  align-items: center;\n  gap: 0.25rem;\n}\n.page-toolbar-module__toggleLabel___f3w7K.page-toolbar-module__light___OkEHy {\n  color: rgba(0, 0, 0, 0.5);\n}\n\n.page-toolbar-module__toggleSwitch___TTjxl {\n  position: relative;\n  display: inline-block;\n  width: 24px;\n  height: 16px;\n  flex-shrink: 0;\n  cursor: pointer;\n  transition: opacity 0.15s ease;\n}\n.page-toolbar-module__toggleSwitch___TTjxl input {\n  opacity: 0;\n  width: 0;\n  height: 0;\n}\n.page-toolbar-module__toggleSwitch___TTjxl input:checked + .page-toolbar-module__toggleSlider___YnDma {\n  background: #3c82f7;\n}\n.page-toolbar-module__toggleSwitch___TTjxl input:checked + .page-toolbar-module__toggleSlider___YnDma::before {\n  transform: translateX(8px);\n}\n.page-toolbar-module__toggleSwitch___TTjxl.page-toolbar-module__disabled___jwPry {\n  opacity: 0.4;\n  pointer-events: none;\n}\n.page-toolbar-module__toggleSwitch___TTjxl.page-toolbar-module__disabled___jwPry .page-toolbar-module__toggleSlider___YnDma {\n  cursor: not-allowed;\n}\n\n.page-toolbar-module__toggleSlider___YnDma {\n  position: absolute;\n  cursor: pointer;\n  inset: 0;\n  border-radius: 16px;\n  background: #484848;\n}\n.page-toolbar-module__light___OkEHy .page-toolbar-module__toggleSlider___YnDma {\n  background: #dddddd;\n}\n.page-toolbar-module__toggleSlider___YnDma::before {\n  content: "";\n  position: absolute;\n  height: 12px;\n  width: 12px;\n  left: 2px;\n  bottom: 2px;\n  background: white;\n  border-radius: 50%;\n  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);\n  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);\n}\n\n@keyframes page-toolbar-module__mcpPulse___JirbR {\n  0% {\n    box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.5);\n  }\n  70% {\n    box-shadow: 0 0 0 6px rgba(52, 199, 89, 0);\n  }\n  100% {\n    box-shadow: 0 0 0 0 rgba(52, 199, 89, 0);\n  }\n}\n@keyframes page-toolbar-module__mcpPulseError___BWrat {\n  0% {\n    box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.5);\n  }\n  70% {\n    box-shadow: 0 0 0 6px rgba(255, 59, 48, 0);\n  }\n  100% {\n    box-shadow: 0 0 0 0 rgba(255, 59, 48, 0);\n  }\n}\n.page-toolbar-module__mcpStatusDot___Lwqmi {\n  width: 8px;\n  height: 8px;\n  border-radius: 50%;\n  flex-shrink: 0;\n}\n.page-toolbar-module__mcpStatusDot___Lwqmi.page-toolbar-module__connecting___l9kzm {\n  background: #f5a623;\n  animation: page-toolbar-module__mcpPulse___JirbR 1.5s infinite;\n}\n.page-toolbar-module__mcpStatusDot___Lwqmi.page-toolbar-module__connected___bd4g7 {\n  background: #34c759;\n  animation: page-toolbar-module__mcpPulse___JirbR 2.5s ease-in-out infinite;\n}\n.page-toolbar-module__mcpStatusDot___Lwqmi.page-toolbar-module__disconnected___yfvyJ {\n  background: #ff3b30;\n  animation: page-toolbar-module__mcpPulseError___BWrat 2s infinite;\n}\n\n.page-toolbar-module__helpIcon___PGlAb {\n  position: relative;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  cursor: help;\n  margin-left: 0;\n}\n.page-toolbar-module__helpIcon___PGlAb svg {\n  display: block;\n  transform: translateY(1px);\n  color: rgba(255, 255, 255, 0.2);\n  transition: color 0.15s ease;\n}\n.page-toolbar-module__helpIcon___PGlAb:hover svg {\n  color: rgba(255, 255, 255, 0.5);\n}\n.page-toolbar-module__helpIcon___PGlAb.page-toolbar-module__helpIconNudgeDown___p8D9P svg {\n  transform: translateY(1px);\n}\n.page-toolbar-module__helpIcon___PGlAb.page-toolbar-module__helpIconNoNudge___j8dJo svg {\n  transform: translateY(0.5px);\n}\n.page-toolbar-module__helpIcon___PGlAb.page-toolbar-module__helpIconNudge1-5___0zgUD svg {\n  transform: translateY(1.5px);\n}\n.page-toolbar-module__helpIcon___PGlAb.page-toolbar-module__helpIconNudge2___-J3Fk svg {\n  transform: translateY(2px);\n}\n\n.page-toolbar-module__drawCanvas___D4ZkJ {\n  position: fixed;\n  inset: 0;\n  z-index: 99996;\n  pointer-events: none !important;\n}\n.page-toolbar-module__drawCanvas___D4ZkJ.page-toolbar-module__active___eCNCs {\n  pointer-events: auto !important;\n  cursor: crosshair !important;\n}\n.page-toolbar-module__drawCanvas___D4ZkJ.page-toolbar-module__active___eCNCs[data-stroke-hover] {\n  cursor: pointer !important;\n}\n\n.page-toolbar-module__dragSelection___FICBI {\n  position: fixed;\n  top: 0;\n  left: 0;\n  border: 2px solid rgba(52, 199, 89, 0.6);\n  border-radius: 4px;\n  background: rgba(52, 199, 89, 0.08);\n  pointer-events: none;\n  z-index: 99997;\n  will-change: transform, width, height;\n  contain: layout style;\n}\n\n.page-toolbar-module__dragCount___k23a6 {\n  position: absolute;\n  top: 50%;\n  left: 50%;\n  transform: translate(-50%, -50%);\n  background: #34c759;\n  color: white;\n  font-size: 0.875rem;\n  font-weight: 600;\n  padding: 0.25rem 0.5rem;\n  border-radius: 1rem;\n  min-width: 1.5rem;\n  text-align: center;\n}\n\n.page-toolbar-module__highlightsContainer___Dtrkr {\n  position: fixed;\n  top: 0;\n  left: 0;\n  pointer-events: none;\n  z-index: 99996;\n}\n\n.page-toolbar-module__selectedElementHighlight___6tZvS {\n  position: fixed;\n  top: 0;\n  left: 0;\n  border: 2px solid rgba(52, 199, 89, 0.5);\n  border-radius: 4px;\n  background: rgba(52, 199, 89, 0.06);\n  pointer-events: none;\n  will-change: transform, width, height;\n  contain: layout style;\n}\n\n.page-toolbar-module__light___OkEHy.page-toolbar-module__toolbarContainer___x5R-d {\n  background: #fff;\n  color: rgba(0, 0, 0, 0.85);\n  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__toolbarContainer___x5R-d.page-toolbar-module__collapsed___Ep0vF:hover {\n  background: #f5f5f5;\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__controlButton___ppLrv {\n  color: rgba(0, 0, 0, 0.5);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__controlButton___ppLrv:hover:not(:disabled):not([data-active=true]):not([data-failed=true]):not([data-auto-sync=true]):not([data-error=true]):not([data-no-hover=true]) {\n  background: rgba(0, 0, 0, 0.06);\n  color: rgba(0, 0, 0, 0.85);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__controlButton___ppLrv[data-active=true] {\n  color: #3c82f7;\n  background: rgba(60, 130, 247, 0.15);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__controlButton___ppLrv[data-error=true] {\n  color: #ff3b30;\n  background: rgba(255, 59, 48, 0.15);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__controlButton___ppLrv[data-danger]:hover:not(:disabled):not([data-active=true]):not([data-failed=true]) {\n  background: rgba(255, 59, 48, 0.15);\n  color: #ff3b30;\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__controlButton___ppLrv[data-auto-sync=true] {\n  color: #34c759;\n  background: transparent;\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__controlButton___ppLrv[data-failed=true] {\n  color: #ff3b30;\n  background: rgba(255, 59, 48, 0.15);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__buttonTooltip___AetOW {\n  background: #fff;\n  color: rgba(0, 0, 0, 0.85);\n  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__buttonTooltip___AetOW::after {\n  background: #fff;\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__divider___cL2DV {\n  background: rgba(0, 0, 0, 0.1);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__markerTooltip___oBqwC {\n  background: #fff;\n  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__markerTooltip___oBqwC .page-toolbar-module__markerQuote___9Qfoa {\n  color: rgba(0, 0, 0, 0.5);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__markerTooltip___oBqwC .page-toolbar-module__markerNote___HOmyF {\n  color: rgba(0, 0, 0, 0.85);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__markerTooltip___oBqwC .page-toolbar-module__markerHint___rUwXR {\n  color: rgba(0, 0, 0, 0.35);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP {\n  background: #fff;\n  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP::before {\n  background: linear-gradient(to right, #fff 0%, transparent 100%);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP::after {\n  background: linear-gradient(to left, #fff 0%, transparent 100%);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsHeader___Vu98j {\n  border-bottom-color: rgba(0, 0, 0, 0.08);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsBrand___euQq5 {\n  color: rgba(0, 0, 0, 0.85);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsBrandSlash___RxG4a {\n  color: rgba(0, 0, 0, 0.4);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsVersion___N-GPL {\n  color: rgba(0, 0, 0, 0.4);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsSection___kh4vw {\n  border-top-color: rgba(0, 0, 0, 0.08);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__settingsLabel___Ai4Q- {\n  color: rgba(0, 0, 0, 0.5);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__cycleButton___uS15m {\n  color: rgba(0, 0, 0, 0.85);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__cycleDot___CW1tR {\n  background: rgba(0, 0, 0, 0.2);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__cycleDot___CW1tR.page-toolbar-module__active___eCNCs {\n  background: rgba(0, 0, 0, 0.7);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__dropdownButton___qTm2f {\n  color: rgba(0, 0, 0, 0.85);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__dropdownButton___qTm2f:hover {\n  background: rgba(0, 0, 0, 0.05);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__toggleLabel___f3w7K {\n  color: rgba(0, 0, 0, 0.5);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__customCheckbox___X5b-y {\n  border: 1px solid rgba(0, 0, 0, 0.15);\n  background: #fff;\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__customCheckbox___X5b-y.page-toolbar-module__checked___ey1iv {\n  border-color: #1a1a1a;\n  background: #1a1a1a;\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__customCheckbox___X5b-y.page-toolbar-module__checked___ey1iv svg {\n  color: #fff;\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__sliderLabel___qK6W0 {\n  color: rgba(0, 0, 0, 0.4);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__sliderLabel___qK6W0:hover {\n  color: rgba(0, 0, 0, 0.7);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__sliderLabel___qK6W0.page-toolbar-module__active___eCNCs {\n  color: rgba(0, 0, 0, 0.9);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__slider___XkOCz {\n  background: rgba(0, 0, 0, 0.1);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__slider___XkOCz::-webkit-slider-thumb {\n  background: #1a1a1a;\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__slider___XkOCz::-moz-range-thumb {\n  background: #1a1a1a;\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__helpIcon___PGlAb svg {\n  color: rgba(0, 0, 0, 0.2);\n}\n.page-toolbar-module__light___OkEHy.page-toolbar-module__settingsPanel___C28ZP .page-toolbar-module__helpIcon___PGlAb:hover svg {\n  color: rgba(0, 0, 0, 0.5);\n}\n\n.page-toolbar-module__themeToggle___vLtgF {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  width: 22px;\n  height: 22px;\n  margin-left: 0.5rem;\n  border: none;\n  border-radius: 6px;\n  background: transparent;\n  color: rgba(255, 255, 255, 0.4);\n  cursor: pointer;\n  transition: background-color 0.15s ease, color 0.15s ease;\n}\n.page-toolbar-module__themeToggle___vLtgF:hover {\n  background: rgba(255, 255, 255, 0.1);\n  color: rgba(255, 255, 255, 0.8);\n}\n.page-toolbar-module__light___OkEHy .page-toolbar-module__themeToggle___vLtgF {\n  color: rgba(0, 0, 0, 0.4);\n}\n.page-toolbar-module__light___OkEHy .page-toolbar-module__themeToggle___vLtgF:hover {\n  background: rgba(0, 0, 0, 0.06);\n  color: rgba(0, 0, 0, 0.7);\n}\n\n.page-toolbar-module__themeIconWrapper___9EVcM {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  position: relative;\n  width: 20px;\n  height: 20px;\n}\n\n.page-toolbar-module__themeIcon___xi-Ah {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  animation: page-toolbar-module__themeIconIn___pKRY4 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;\n}\n\n@keyframes page-toolbar-module__themeIconIn___pKRY4 {\n  0% {\n    opacity: 0;\n    transform: scale(0.8) rotate(-30deg);\n  }\n  100% {\n    opacity: 1;\n    transform: scale(1) rotate(0deg);\n  }\n}';
+var classNames = { "toolbar": "page-toolbar-module__toolbar___sBwIb", "toolbarContainer": "page-toolbar-module__toolbarContainer___x5R-d", "dragging": "page-toolbar-module__dragging___UIy-x", "entrance": "page-toolbar-module__entrance___gAJff", "toolbarEnter": "page-toolbar-module__toolbarEnter___-WEE5", "hiding": "page-toolbar-module__hiding___mdJIe", "toolbarHide": "page-toolbar-module__toolbarHide___Uhyz-", "collapsed": "page-toolbar-module__collapsed___Ep0vF", "expanded": "page-toolbar-module__expanded___HKRxf", "serverConnected": "page-toolbar-module__serverConnected___AgpbE", "toggleContent": "page-toolbar-module__toggleContent___uFPh5", "visible": "page-toolbar-module__visible___0P5dl", "hidden": "page-toolbar-module__hidden___rLRX-", "controlsContent": "page-toolbar-module__controlsContent___3c09P", "badge": "page-toolbar-module__badge___d2Sgd", "fadeOut": "page-toolbar-module__fadeOut___dAA6W", "badgeEnter": "page-toolbar-module__badgeEnter___tPtKD", "controlButton": "page-toolbar-module__controlButton___ppLrv", "statusShowing": "page-toolbar-module__statusShowing___F-Tku", "buttonBadge": "page-toolbar-module__buttonBadge___ID4id", "light": "page-toolbar-module__light___OkEHy", "mcpIndicator": "page-toolbar-module__mcpIndicator___KqlFK", "connected": "page-toolbar-module__connected___bd4g7", "mcpIndicatorPulseConnected": "page-toolbar-module__mcpIndicatorPulseConnected___0ghgC", "connecting": "page-toolbar-module__connecting___l9kzm", "mcpIndicatorPulseConnecting": "page-toolbar-module__mcpIndicatorPulseConnecting___kYfpu", "connectionIndicatorWrapper": "page-toolbar-module__connectionIndicatorWrapper___xmyKM", "connectionIndicator": "page-toolbar-module__connectionIndicator___0gwMz", "connectionIndicatorVisible": "page-toolbar-module__connectionIndicatorVisible___L-bAC", "connectionIndicatorConnected": "page-toolbar-module__connectionIndicatorConnected___I2ODc", "connectionPulse": "page-toolbar-module__connectionPulse___Mb8JU", "connectionIndicatorDisconnected": "page-toolbar-module__connectionIndicatorDisconnected___s2kSH", "connectionIndicatorConnecting": "page-toolbar-module__connectionIndicatorConnecting___IjG3P", "buttonWrapper": "page-toolbar-module__buttonWrapper___Z2afJ", "buttonTooltip": "page-toolbar-module__buttonTooltip___AetOW", "tooltipsInSession": "page-toolbar-module__tooltipsInSession___DbxC9", "sendButtonWrapper": "page-toolbar-module__sendButtonWrapper___naR5s", "sendButtonVisible": "page-toolbar-module__sendButtonVisible___3ItIp", "shortcut": "page-toolbar-module__shortcut___dVvrO", "tooltipBelow": "page-toolbar-module__tooltipBelow___4zzOD", "tooltipsHidden": "page-toolbar-module__tooltipsHidden___1NAj0", "tooltipVisible": "page-toolbar-module__tooltipVisible___Z9IMh", "buttonWrapperAlignLeft": "page-toolbar-module__buttonWrapperAlignLeft___fQ8G3", "buttonWrapperAlignRight": "page-toolbar-module__buttonWrapperAlignRight___mSVi3", "divider": "page-toolbar-module__divider___cL2DV", "overlay": "page-toolbar-module__overlay___Zg2Lx", "hoverHighlight": "page-toolbar-module__hoverHighlight___x-hcw", "enter": "page-toolbar-module__enter___MokYX", "hoverHighlightIn": "page-toolbar-module__hoverHighlightIn___f6l-B", "multiSelectOutline": "page-toolbar-module__multiSelectOutline___GtfT4", "fadeIn": "page-toolbar-module__fadeIn___RJvi3", "exit": "page-toolbar-module__exit___6NIVt", "singleSelectOutline": "page-toolbar-module__singleSelectOutline___lDMOt", "hoverTooltip": "page-toolbar-module__hoverTooltip___YHQxN", "hoverTooltipIn": "page-toolbar-module__hoverTooltipIn___d-9u5", "hoverReactPath": "page-toolbar-module__hoverReactPath___gsH0-", "hoverElementName": "page-toolbar-module__hoverElementName___9Wxnf", "markersLayer": "page-toolbar-module__markersLayer___hXKyR", "fixedMarkersLayer": "page-toolbar-module__fixedMarkersLayer___0QARr", "marker": "page-toolbar-module__marker___c0doQ", "clearing": "page-toolbar-module__clearing___aXE1v", "markerIn": "page-toolbar-module__markerIn___A1Wxv", "markerOut": "page-toolbar-module__markerOut___h-kr9", "pending": "page-toolbar-module__pending___Ln-lV", "fixed": "page-toolbar-module__fixed___U4mr3", "multiSelect": "page-toolbar-module__multiSelect___Z-PYZ", "hovered": "page-toolbar-module__hovered___2HwnW", "renumber": "page-toolbar-module__renumber___rVqlG", "renumberRoll": "page-toolbar-module__renumberRoll___zbFKe", "markerTooltip": "page-toolbar-module__markerTooltip___oBqwC", "tooltipIn": "page-toolbar-module__tooltipIn___jMmfJ", "markerQuote": "page-toolbar-module__markerQuote___9Qfoa", "markerNote": "page-toolbar-module__markerNote___HOmyF", "markerHint": "page-toolbar-module__markerHint___rUwXR", "settingsPanel": "page-toolbar-module__settingsPanel___C28ZP", "settingsHeader": "page-toolbar-module__settingsHeader___Vu98j", "settingsBrand": "page-toolbar-module__settingsBrand___euQq5", "settingsBrandSlash": "page-toolbar-module__settingsBrandSlash___RxG4a", "settingsVersion": "page-toolbar-module__settingsVersion___N-GPL", "settingsSection": "page-toolbar-module__settingsSection___kh4vw", "settingsLabel": "page-toolbar-module__settingsLabel___Ai4Q-", "cycleButton": "page-toolbar-module__cycleButton___uS15m", "cycleDot": "page-toolbar-module__cycleDot___CW1tR", "dropdownButton": "page-toolbar-module__dropdownButton___qTm2f", "toggleLabel": "page-toolbar-module__toggleLabel___f3w7K", "customCheckbox": "page-toolbar-module__customCheckbox___X5b-y", "sliderLabel": "page-toolbar-module__sliderLabel___qK6W0", "slider": "page-toolbar-module__slider___XkOCz", "helpIcon": "page-toolbar-module__helpIcon___PGlAb", "themeToggle": "page-toolbar-module__themeToggle___vLtgF", "dark": "page-toolbar-module__dark___fp8IT", "settingsOption": "page-toolbar-module__settingsOption___X1xKK", "selected": "page-toolbar-module__selected___MO3j6", "settingsPanelContainer": "page-toolbar-module__settingsPanelContainer___mjMeX", "transitioning": "page-toolbar-module__transitioning___tljBd", "settingsPage": "page-toolbar-module__settingsPage___D45Js", "slideLeft": "page-toolbar-module__slideLeft___Tz-ss", "automationsPage": "page-toolbar-module__automationsPage___Qf3xs", "slideIn": "page-toolbar-module__slideIn___Fhz3M", "settingsNavLink": "page-toolbar-module__settingsNavLink___QulVN", "settingsNavLinkRight": "page-toolbar-module__settingsNavLinkRight___2sIrs", "mcpNavIndicator": "page-toolbar-module__mcpNavIndicator___nHMuu", "mcpPulse": "page-toolbar-module__mcpPulse___JirbR", "settingsBackButton": "page-toolbar-module__settingsBackButton___f3AO8", "automationHeader": "page-toolbar-module__automationHeader___A77vC", "automationDescription": "page-toolbar-module__automationDescription___0scee", "learnMoreLink": "page-toolbar-module__learnMoreLink___PkVsi", "autoSendRow": "page-toolbar-module__autoSendRow___er1rz", "autoSendLabel": "page-toolbar-module__autoSendLabel___JilZW", "active": "page-toolbar-module__active___eCNCs", "webhookUrlInput": "page-toolbar-module__webhookUrlInput___QcPU3", "settingsSectionExtraPadding": "page-toolbar-module__settingsSectionExtraPadding___ti6XY", "settingsSectionGrow": "page-toolbar-module__settingsSectionGrow___kVkby", "settingsRow": "page-toolbar-module__settingsRow___li31L", "settingsRowMarginTop": "page-toolbar-module__settingsRowMarginTop___Nk3bS", "dropdownContainer": "page-toolbar-module__dropdownContainer___FBf2c", "settingsRowDisabled": "page-toolbar-module__settingsRowDisabled___c4jKo", "toggleSwitch": "page-toolbar-module__toggleSwitch___TTjxl", "cycleButtonText": "page-toolbar-module__cycleButtonText___EmmsR", "cycleTextIn": "page-toolbar-module__cycleTextIn___0H9ys", "cycleDots": "page-toolbar-module__cycleDots___PXV30", "dropdownMenu": "page-toolbar-module__dropdownMenu___rHVad", "scaleIn": "page-toolbar-module__scaleIn___7i9nB", "dropdownItem": "page-toolbar-module__dropdownItem___a0PQp", "settingsLabelMarker": "page-toolbar-module__settingsLabelMarker___ZbvBg", "settingsOptions": "page-toolbar-module__settingsOptions___EZdOQ", "sliderContainer": "page-toolbar-module__sliderContainer___HYHEn", "sliderLabels": "page-toolbar-module__sliderLabels___J4-mc", "colorOptions": "page-toolbar-module__colorOptions___2P2Dw", "colorOption": "page-toolbar-module__colorOption___oAKqy", "colorOptionRing": "page-toolbar-module__colorOptionRing___-Fehe", "settingsToggle": "page-toolbar-module__settingsToggle___X2LSX", "settingsToggleMarginBottom": "page-toolbar-module__settingsToggleMarginBottom___z9mxi", "checked": "page-toolbar-module__checked___ey1iv", "toggleSlider": "page-toolbar-module__toggleSlider___YnDma", "disabled": "page-toolbar-module__disabled___jwPry", "mcpStatusDot": "page-toolbar-module__mcpStatusDot___Lwqmi", "disconnected": "page-toolbar-module__disconnected___yfvyJ", "mcpPulseError": "page-toolbar-module__mcpPulseError___BWrat", "helpIconNudgeDown": "page-toolbar-module__helpIconNudgeDown___p8D9P", "helpIconNoNudge": "page-toolbar-module__helpIconNoNudge___j8dJo", "helpIconNudge1-5": "page-toolbar-module__helpIconNudge1-5___0zgUD", "helpIconNudge2": "page-toolbar-module__helpIconNudge2___-J3Fk", "drawCanvas": "page-toolbar-module__drawCanvas___D4ZkJ", "dragSelection": "page-toolbar-module__dragSelection___FICBI", "dragCount": "page-toolbar-module__dragCount___k23a6", "highlightsContainer": "page-toolbar-module__highlightsContainer___Dtrkr", "selectedElementHighlight": "page-toolbar-module__selectedElementHighlight___6tZvS", "themeIconWrapper": "page-toolbar-module__themeIconWrapper___9EVcM", "themeIcon": "page-toolbar-module__themeIcon___xi-Ah", "themeIconIn": "page-toolbar-module__themeIconIn___pKRY4", "scaleOut": "page-toolbar-module__scaleOut___Y1Ztx", "slideUp": "page-toolbar-module__slideUp___496yM", "slideDown": "page-toolbar-module__slideDown___PRK4O", "settingsPanelIn": "page-toolbar-module__settingsPanelIn___YMAX5", "settingsPanelOut": "page-toolbar-module__settingsPanelOut___fv1FI" };
 if (typeof document !== "undefined") {
   let style = document.getElementById("feedback-tool-styles-styles-page-toolbar");
   if (!style) {
@@ -1047,7 +1199,7 @@ if (typeof document !== "undefined") {
 }
 var page_toolbar_module_default = classNames;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/AnnotationPopup.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/AnnotationPopup.vue
 import { defineComponent as _defineComponent } from "vue";
 import { ref, watch, onMounted, onUnmounted } from "vue";
 
@@ -1065,7 +1217,7 @@ if (typeof document !== "undefined") {
 }
 var annotation_popup_module_default = classNames2;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/AnnotationPopup.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/AnnotationPopup.vue
 import { createElementVNode as _createElementVNode, normalizeClass as _normalizeClass, openBlock as _openBlock, createElementBlock as _createElementBlock, toDisplayString as _toDisplayString, createCommentVNode as _createCommentVNode, renderList as _renderList, Fragment as _Fragment, createTextVNode as _createTextVNode, normalizeStyle as _normalizeStyle, withModifiers as _withModifiers } from "vue";
 var _sfc_main = /* @__PURE__ */ _defineComponent({
   __name: "AnnotationPopup",
@@ -1462,11 +1614,11 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main.render = render;
 var AnnotationPopup_default = _sfc_main;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/AnnotationMarker.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/AnnotationMarker.vue
 import { defineComponent as _defineComponent38 } from "vue";
 import { computed as computed2 } from "vue";
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconClose.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconClose.vue
 import { defineComponent as _defineComponent2 } from "vue";
 import { createElementVNode as _createElementVNode2, openBlock as _openBlock2, createElementBlock as _createElementBlock2 } from "vue";
 var _sfc_main2 = /* @__PURE__ */ _defineComponent2({
@@ -1506,7 +1658,7 @@ function render2(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main2.render = render2;
 var IconClose_default = _sfc_main2;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconPlus.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconPlus.vue
 import { defineComponent as _defineComponent3 } from "vue";
 import { createElementVNode as _createElementVNode3, openBlock as _openBlock3, createElementBlock as _createElementBlock3 } from "vue";
 var _sfc_main3 = /* @__PURE__ */ _defineComponent3({
@@ -1546,7 +1698,7 @@ function render3(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main3.render = render3;
 var IconPlus_default = _sfc_main3;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconCheck.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconCheck.vue
 import { defineComponent as _defineComponent4 } from "vue";
 import { createElementVNode as _createElementVNode4, openBlock as _openBlock4, createElementBlock as _createElementBlock4 } from "vue";
 var _sfc_main4 = /* @__PURE__ */ _defineComponent4({
@@ -1587,7 +1739,7 @@ function render4(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main4.render = render4;
 var IconCheck_default = _sfc_main4;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconCheckSmall.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconCheckSmall.vue
 import { defineComponent as _defineComponent5 } from "vue";
 import { createElementVNode as _createElementVNode5, openBlock as _openBlock5, createElementBlock as _createElementBlock5 } from "vue";
 var _sfc_main5 = /* @__PURE__ */ _defineComponent5({
@@ -1628,7 +1780,7 @@ function render5(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main5.render = render5;
 var IconCheckSmall_default = _sfc_main5;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconListSparkle.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconListSparkle.vue
 import { defineComponent as _defineComponent6 } from "vue";
 import { normalizeStyle as _normalizeStyle2, openBlock as _openBlock6, createElementBlock as _createElementBlock6, createStaticVNode as _createStaticVNode } from "vue";
 var _sfc_main6 = /* @__PURE__ */ _defineComponent6({
@@ -1659,7 +1811,7 @@ function render6(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main6.render = render6;
 var IconListSparkle_default = _sfc_main6;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconHelp.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconHelp.vue
 import { defineComponent as _defineComponent7 } from "vue";
 import { createElementVNode as _createElementVNode7, openBlock as _openBlock7, createElementBlock as _createElementBlock7 } from "vue";
 var _sfc_main7 = /* @__PURE__ */ _defineComponent7({
@@ -1725,7 +1877,7 @@ function render7(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main7.render = render7;
 var IconHelp_default = _sfc_main7;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconCheckSmallAnimated.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconCheckSmallAnimated.vue
 import { defineComponent as _defineComponent8 } from "vue";
 import { createElementVNode as _createElementVNode8, openBlock as _openBlock8, createElementBlock as _createElementBlock8 } from "vue";
 var _sfc_main8 = /* @__PURE__ */ _defineComponent8({
@@ -1776,7 +1928,7 @@ if (typeof document !== "undefined") {
 }
 var IconCheckSmallAnimated_default = _sfc_main8;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconCopyAlt.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconCopyAlt.vue
 import { defineComponent as _defineComponent9 } from "vue";
 import { createElementVNode as _createElementVNode9, openBlock as _openBlock9, createElementBlock as _createElementBlock9 } from "vue";
 var _sfc_main9 = /* @__PURE__ */ _defineComponent9({
@@ -1827,7 +1979,7 @@ function render9(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main9.render = render9;
 var IconCopyAlt_default = _sfc_main9;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconCopyAnimated.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconCopyAnimated.vue
 import { defineComponent as _defineComponent10 } from "vue";
 import { createCommentVNode as _createCommentVNode2, createElementVNode as _createElementVNode10, normalizeStyle as _normalizeStyle3, openBlock as _openBlock10, createElementBlock as _createElementBlock10 } from "vue";
 var _sfc_main10 = /* @__PURE__ */ _defineComponent10({
@@ -1946,7 +2098,7 @@ if (typeof document !== "undefined") {
 }
 var IconCopyAnimated_default = _sfc_main10;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconSendArrow.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconSendArrow.vue
 import { defineComponent as _defineComponent11 } from "vue";
 import { computed } from "vue";
 import { createCommentVNode as _createCommentVNode3, createElementVNode as _createElementVNode11, normalizeStyle as _normalizeStyle4, openBlock as _openBlock11, createElementBlock as _createElementBlock11 } from "vue";
@@ -2119,7 +2271,7 @@ if (typeof document !== "undefined") {
 }
 var IconSendArrow_default = _sfc_main11;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconSendAnimated.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconSendAnimated.vue
 import { defineComponent as _defineComponent12 } from "vue";
 import { createCommentVNode as _createCommentVNode4, createElementVNode as _createElementVNode12, normalizeStyle as _normalizeStyle5, openBlock as _openBlock12, createElementBlock as _createElementBlock12 } from "vue";
 var _sfc_main12 = /* @__PURE__ */ _defineComponent12({
@@ -2264,7 +2416,7 @@ if (typeof document !== "undefined") {
 }
 var IconSendAnimated_default = _sfc_main12;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconEye.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconEye.vue
 import { defineComponent as _defineComponent13 } from "vue";
 import { createElementVNode as _createElementVNode13, openBlock as _openBlock13, createElementBlock as _createElementBlock13 } from "vue";
 var _sfc_main13 = /* @__PURE__ */ _defineComponent13({
@@ -2318,7 +2470,7 @@ function render13(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main13.render = render13;
 var IconEye_default = _sfc_main13;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconEyeAlt.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconEyeAlt.vue
 import { defineComponent as _defineComponent14 } from "vue";
 import { createElementVNode as _createElementVNode14, openBlock as _openBlock14, createElementBlock as _createElementBlock14 } from "vue";
 var _sfc_main14 = /* @__PURE__ */ _defineComponent14({
@@ -2372,7 +2524,7 @@ function render14(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main14.render = render14;
 var IconEyeAlt_default = _sfc_main14;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconEyeClosed.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconEyeClosed.vue
 import { defineComponent as _defineComponent15 } from "vue";
 import { createElementVNode as _createElementVNode15, openBlock as _openBlock15, createElementBlock as _createElementBlock15 } from "vue";
 var _sfc_main15 = /* @__PURE__ */ _defineComponent15({
@@ -2422,7 +2574,7 @@ function render15(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main15.render = render15;
 var IconEyeClosed_default = _sfc_main15;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconEyeAnimated.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconEyeAnimated.vue
 import { defineComponent as _defineComponent16 } from "vue";
 import { createCommentVNode as _createCommentVNode5, createElementVNode as _createElementVNode16, normalizeStyle as _normalizeStyle6, openBlock as _openBlock16, createElementBlock as _createElementBlock16 } from "vue";
 var _sfc_main16 = /* @__PURE__ */ _defineComponent16({
@@ -2532,7 +2684,7 @@ if (typeof document !== "undefined") {
 }
 var IconEyeAnimated_default = _sfc_main16;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconPausePlayAnimated.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconPausePlayAnimated.vue
 import { defineComponent as _defineComponent17 } from "vue";
 import { createCommentVNode as _createCommentVNode6, normalizeStyle as _normalizeStyle7, createElementVNode as _createElementVNode17, openBlock as _openBlock17, createElementBlock as _createElementBlock17 } from "vue";
 var _sfc_main17 = /* @__PURE__ */ _defineComponent17({
@@ -2613,7 +2765,7 @@ if (typeof document !== "undefined") {
 }
 var IconPausePlayAnimated_default = _sfc_main17;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconEyeMinus.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconEyeMinus.vue
 import { defineComponent as _defineComponent18 } from "vue";
 import { createElementVNode as _createElementVNode18, openBlock as _openBlock18, createElementBlock as _createElementBlock18 } from "vue";
 var _sfc_main18 = /* @__PURE__ */ _defineComponent18({
@@ -2666,7 +2818,7 @@ function render18(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main18.render = render18;
 var IconEyeMinus_default = _sfc_main18;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconGear.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconGear.vue
 import { defineComponent as _defineComponent19 } from "vue";
 import { createElementVNode as _createElementVNode19, openBlock as _openBlock19, createElementBlock as _createElementBlock19 } from "vue";
 var _sfc_main19 = /* @__PURE__ */ _defineComponent19({
@@ -2720,7 +2872,7 @@ function render19(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main19.render = render19;
 var IconGear_default = _sfc_main19;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconPauseAlt.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconPauseAlt.vue
 import { defineComponent as _defineComponent20 } from "vue";
 import { createElementVNode as _createElementVNode20, openBlock as _openBlock20, createElementBlock as _createElementBlock20 } from "vue";
 var _sfc_main20 = /* @__PURE__ */ _defineComponent20({
@@ -2770,7 +2922,7 @@ function render20(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main20.render = render20;
 var IconPauseAlt_default = _sfc_main20;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconPause.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconPause.vue
 import { defineComponent as _defineComponent21 } from "vue";
 import { createElementVNode as _createElementVNode21, openBlock as _openBlock21, createElementBlock as _createElementBlock21 } from "vue";
 var _sfc_main21 = /* @__PURE__ */ _defineComponent21({
@@ -2822,7 +2974,7 @@ function render21(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main21.render = render21;
 var IconPause_default = _sfc_main21;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconPlayAlt.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconPlayAlt.vue
 import { defineComponent as _defineComponent22 } from "vue";
 import { createElementVNode as _createElementVNode22, openBlock as _openBlock22, createElementBlock as _createElementBlock22 } from "vue";
 var _sfc_main22 = /* @__PURE__ */ _defineComponent22({
@@ -2861,7 +3013,7 @@ function render22(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main22.render = render22;
 var IconPlayAlt_default = _sfc_main22;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconTrashAlt.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconTrashAlt.vue
 import { defineComponent as _defineComponent23 } from "vue";
 import { createElementVNode as _createElementVNode23, openBlock as _openBlock23, createElementBlock as _createElementBlock23 } from "vue";
 var _sfc_main23 = /* @__PURE__ */ _defineComponent23({
@@ -2899,7 +3051,7 @@ function render23(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main23.render = render23;
 var IconTrashAlt_default = _sfc_main23;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconChatEllipsis.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconChatEllipsis.vue
 import { defineComponent as _defineComponent24 } from "vue";
 import { createElementVNode as _createElementVNode24, normalizeStyle as _normalizeStyle8, openBlock as _openBlock24, createElementBlock as _createElementBlock24 } from "vue";
 var _sfc_main24 = /* @__PURE__ */ _defineComponent24({
@@ -2975,7 +3127,7 @@ function render24(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main24.render = render24;
 var IconChatEllipsis_default = _sfc_main24;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconCheckmark.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconCheckmark.vue
 import { defineComponent as _defineComponent25 } from "vue";
 import { createElementVNode as _createElementVNode25, openBlock as _openBlock25, createElementBlock as _createElementBlock25 } from "vue";
 var _sfc_main25 = /* @__PURE__ */ _defineComponent25({
@@ -3033,7 +3185,7 @@ function render25(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main25.render = render25;
 var IconCheckmark_default = _sfc_main25;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconCheckmarkLarge.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconCheckmarkLarge.vue
 import { defineComponent as _defineComponent26 } from "vue";
 import { createElementVNode as _createElementVNode26, openBlock as _openBlock26, createElementBlock as _createElementBlock26 } from "vue";
 var _sfc_main26 = /* @__PURE__ */ _defineComponent26({
@@ -3091,7 +3243,7 @@ function render26(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main26.render = render26;
 var IconCheckmarkLarge_default = _sfc_main26;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconCheckmarkCircle.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconCheckmarkCircle.vue
 import { defineComponent as _defineComponent27 } from "vue";
 import { openBlock as _openBlock27, createElementBlock as _createElementBlock27, createStaticVNode as _createStaticVNode2 } from "vue";
 var _sfc_main27 = /* @__PURE__ */ _defineComponent27({
@@ -3120,7 +3272,7 @@ function render27(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main27.render = render27;
 var IconCheckmarkCircle_default = _sfc_main27;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconXmark.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconXmark.vue
 import { defineComponent as _defineComponent28 } from "vue";
 import { openBlock as _openBlock28, createElementBlock as _createElementBlock28, createStaticVNode as _createStaticVNode3 } from "vue";
 var _sfc_main28 = /* @__PURE__ */ _defineComponent28({
@@ -3149,7 +3301,7 @@ function render28(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main28.render = render28;
 var IconXmark_default = _sfc_main28;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconXmarkLarge.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconXmarkLarge.vue
 import { defineComponent as _defineComponent29 } from "vue";
 import { createElementVNode as _createElementVNode29, openBlock as _openBlock29, createElementBlock as _createElementBlock29 } from "vue";
 var _sfc_main29 = /* @__PURE__ */ _defineComponent29({
@@ -3187,7 +3339,7 @@ function render29(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main29.render = render29;
 var IconXmarkLarge_default = _sfc_main29;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconSun.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconSun.vue
 import { defineComponent as _defineComponent30 } from "vue";
 import { openBlock as _openBlock30, createElementBlock as _createElementBlock30, createStaticVNode as _createStaticVNode4 } from "vue";
 var _sfc_main30 = /* @__PURE__ */ _defineComponent30({
@@ -3216,7 +3368,7 @@ function render30(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main30.render = render30;
 var IconSun_default = _sfc_main30;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconMoon.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconMoon.vue
 import { defineComponent as _defineComponent31 } from "vue";
 import { createElementVNode as _createElementVNode31, openBlock as _openBlock31, createElementBlock as _createElementBlock31 } from "vue";
 var _sfc_main31 = /* @__PURE__ */ _defineComponent31({
@@ -3257,7 +3409,7 @@ function render31(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main31.render = render31;
 var IconMoon_default = _sfc_main31;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconEdit.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconEdit.vue
 import { defineComponent as _defineComponent32 } from "vue";
 import { createElementVNode as _createElementVNode32, openBlock as _openBlock32, createElementBlock as _createElementBlock32 } from "vue";
 var _sfc_main32 = /* @__PURE__ */ _defineComponent32({
@@ -3299,7 +3451,7 @@ function render32(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main32.render = render32;
 var IconEdit_default = _sfc_main32;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconTrash.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconTrash.vue
 import { defineComponent as _defineComponent33 } from "vue";
 import { createElementVNode as _createElementVNode33, openBlock as _openBlock33, createElementBlock as _createElementBlock33 } from "vue";
 var _sfc_main33 = /* @__PURE__ */ _defineComponent33({
@@ -3338,7 +3490,7 @@ function render33(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main33.render = render33;
 var IconTrash_default = _sfc_main33;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconChevronLeft.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconChevronLeft.vue
 import { defineComponent as _defineComponent34 } from "vue";
 import { createElementVNode as _createElementVNode34, openBlock as _openBlock34, createElementBlock as _createElementBlock34 } from "vue";
 var _sfc_main34 = /* @__PURE__ */ _defineComponent34({
@@ -3380,7 +3532,7 @@ function render34(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main34.render = render34;
 var IconChevronLeft_default = _sfc_main34;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconChevronRight.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconChevronRight.vue
 import { defineComponent as _defineComponent35 } from "vue";
 import { createElementVNode as _createElementVNode35, openBlock as _openBlock35, createElementBlock as _createElementBlock35 } from "vue";
 var _sfc_main35 = /* @__PURE__ */ _defineComponent35({
@@ -3422,7 +3574,7 @@ function render35(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main35.render = render35;
 var IconChevronRight_default = _sfc_main35;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/IconPencil.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/IconPencil.vue
 import { defineComponent as _defineComponent36 } from "vue";
 import { createElementVNode as _createElementVNode36, openBlock as _openBlock36, createElementBlock as _createElementBlock36 } from "vue";
 var _sfc_main36 = /* @__PURE__ */ _defineComponent36({
@@ -3475,7 +3627,7 @@ function render36(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main36.render = render36;
 var IconPencil_default = _sfc_main36;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/icons/AnimatedBunny.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/icons/AnimatedBunny.vue
 import { defineComponent as _defineComponent37 } from "vue";
 import { createCommentVNode as _createCommentVNode7, createElementVNode as _createElementVNode37, openBlock as _openBlock37, createElementBlock as _createElementBlock37 } from "vue";
 var _sfc_main37 = /* @__PURE__ */ _defineComponent37({
@@ -3576,7 +3728,7 @@ if (typeof document !== "undefined") {
 }
 var AnimatedBunny_default = _sfc_main37;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/AnnotationMarker.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/AnnotationMarker.vue
 import { openBlock as _openBlock38, createBlock as _createBlock, createCommentVNode as _createCommentVNode8, Fragment as _Fragment2, createElementBlock as _createElementBlock38, toDisplayString as _toDisplayString2, normalizeClass as _normalizeClass2, createTextVNode as _createTextVNode2, createElementVNode as _createElementVNode38, normalizeStyle as _normalizeStyle9, withModifiers as _withModifiers2 } from "vue";
 var _sfc_main38 = /* @__PURE__ */ _defineComponent38({
   __name: "AnnotationMarker",
@@ -3593,11 +3745,9 @@ var _sfc_main38 = /* @__PURE__ */ _defineComponent38({
     markersExiting: { type: Boolean, required: true },
     isClearing: { type: Boolean, required: true },
     needsEnterAnimation: { type: Boolean, required: true },
-    animatedMarkersSize: { type: Number, required: true },
     isFixed: { type: Boolean, required: true },
     renumberFrom: { type: [Number, null], required: true },
-    isDarkMode: { type: Boolean, required: true },
-    tooltipExitingId: { type: [String, null], required: true }
+    isDarkMode: { type: Boolean, required: true }
   },
   emits: ["mouseenter", "mouseleave", "click", "contextmenu"],
   setup(__props, { expose: __expose, emit: __emit }) {
@@ -3623,17 +3773,12 @@ var _sfc_main38 = /* @__PURE__ */ _defineComponent38({
       if (props.markersExiting) {
         return `${(props.totalVisible - 1 - props.index) * 20}ms`;
       }
-      if (props.needsEnterAnimation && props.animatedMarkersSize === 0) {
+      if (props.needsEnterAnimation) {
         return `${props.index * 20}ms`;
       }
       return void 0;
     });
-    const showTooltip = computed2(
-      () => (props.isHovered || props.tooltipExitingId === props.annotation.id) && !props.isEditing
-    );
-    const tooltipAnimClass = computed2(
-      () => props.tooltipExitingId === props.annotation.id && !props.isHovered ? page_toolbar_module_default.exit : page_toolbar_module_default.enter
-    );
+    const showTooltip = computed2(() => props.isHovered && !props.isEditing);
     function getTooltipPosition() {
       const tooltipMaxWidth = 200;
       const tooltipEstimatedHeight = 80;
@@ -3658,7 +3803,7 @@ var _sfc_main38 = /* @__PURE__ */ _defineComponent38({
       }
       return result;
     }
-    const __returned__ = { props, emit, showDeleteState, showDeleteHover, animClass, markerClass, animDelay, showTooltip, tooltipAnimClass, getTooltipPosition, get IconXmark() {
+    const __returned__ = { props, emit, showDeleteState, showDeleteHover, animClass, markerClass, animDelay, showTooltip, getTooltipPosition, get IconXmark() {
       return IconXmark_default;
     }, get IconEdit() {
       return IconEdit_default;
@@ -3719,7 +3864,7 @@ function render38(_ctx, _cache, $props, $setup, $data, $options) {
           class: _normalizeClass2([
             $setup.styles.markerTooltip,
             !$props.isDarkMode ? $setup.styles.light : "",
-            $setup.tooltipAnimClass
+            $setup.styles.enter
           ]),
           style: _normalizeStyle9($setup.getTooltipPosition())
         },
@@ -3773,10 +3918,10 @@ function render38(_ctx, _cache, $props, $setup, $data, $options) {
 _sfc_main38.render = render38;
 var AnnotationMarker_default = _sfc_main38;
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/ToolbarSettingsPanel.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/ToolbarSettingsPanel.vue
 import { defineComponent as _defineComponent40 } from "vue";
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/ToolbarTooltip.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/ToolbarTooltip.vue
 import { defineComponent as _defineComponent39 } from "vue";
 import { ref as ref2, onUnmounted as onUnmounted2, Teleport } from "vue";
 import { renderSlot as _renderSlot, createElementVNode as _createElementVNode39, toDisplayString as _toDisplayString3, normalizeStyle as _normalizeStyle10, openBlock as _openBlock39, createElementBlock as _createElementBlock39, createCommentVNode as _createCommentVNode9, Teleport as _Teleport, createBlock as _createBlock2, Fragment as _Fragment3 } from "vue";
@@ -4054,7 +4199,7 @@ function useToolbarSettings() {
   };
 }
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/ToolbarSettingsPanel.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/ToolbarSettingsPanel.vue
 import { createCommentVNode as _createCommentVNode10, normalizeClass as _normalizeClass3, normalizeStyle as _normalizeStyle11, createElementVNode as _createElementVNode40, createTextVNode as _createTextVNode3, toDisplayString as _toDisplayString4, openBlock as _openBlock40, createBlock as _createBlock3, createVNode as _createVNode, withCtx as _withCtx, renderList as _renderList2, Fragment as _Fragment4, createElementBlock as _createElementBlock40, withModifiers as _withModifiers3 } from "vue";
 var _sfc_main40 = /* @__PURE__ */ _defineComponent40({
   __name: "ToolbarSettingsPanel",
@@ -4069,7 +4214,7 @@ var _sfc_main40 = /* @__PURE__ */ _defineComponent40({
     isTransitioning: { type: Boolean, required: true },
     settingsPage: { type: String, required: true }
   },
-  emits: ["update:isDarkMode", "update:settings", "update:settingsPage"],
+  emits: ["update:isDarkMode", "update:settings", "update:settingsPage", "hideToolbar"],
   setup(__props, { expose: __expose, emit: __emit }) {
     __expose();
     const props = __props;
@@ -4124,7 +4269,7 @@ function render40(_ctx, _cache, $props, $setup, $data, $options) {
         $props.showSettingsVisible ? $setup.styles.enter : $setup.styles.exit
       ]),
       "data-settings-panel": "",
-      onClick: _cache[8] || (_cache[8] = _withModifiers3(() => {
+      onClick: _cache[9] || (_cache[9] = _withModifiers3(() => {
       }, ["stop"])),
       style: _normalizeStyle11(
         $props.toolbarPosition && $props.toolbarPosition.y < 230 ? { bottom: "auto", top: "calc(100% + 0.5rem)" } : void 0
@@ -4172,7 +4317,7 @@ function render40(_ctx, _cache, $props, $setup, $data, $options) {
                         6
                         /* CLASS, STYLE */
                       ),
-                      _cache[9] || (_cache[9] = _createTextVNode3(
+                      _cache[10] || (_cache[10] = _createTextVNode3(
                         " agentation ",
                         -1
                         /* CACHED */
@@ -4245,7 +4390,7 @@ function render40(_ctx, _cache, $props, $setup, $data, $options) {
                           class: _normalizeClass3([$setup.styles.settingsLabel, !$props.isDarkMode ? $setup.styles.light : ""])
                         },
                         [
-                          _cache[10] || (_cache[10] = _createTextVNode3(
+                          _cache[11] || (_cache[11] = _createTextVNode3(
                             " Output Detail ",
                             -1
                             /* CACHED */
@@ -4346,13 +4491,13 @@ function render40(_ctx, _cache, $props, $setup, $data, $options) {
                           class: _normalizeClass3([$setup.styles.settingsLabel, !$props.isDarkMode ? $setup.styles.light : ""])
                         },
                         [
-                          _cache[11] || (_cache[11] = _createTextVNode3(
+                          _cache[12] || (_cache[12] = _createTextVNode3(
                             " Vue Components ",
                             -1
                             /* CACHED */
                           )),
                           _createVNode($setup["ToolbarTooltip"], {
-                            content: !$props.isLocalhost ? "Disabled \u2014 production builds minify component names, making detection unreliable. Use on localhost in development mode." : "Include Vue component names in annotations",
+                            content: !$props.isLocalhost ? "Disabled \u2014 production builds strip component names, making detection unreliable. Enable in dev mode." : "Include Vue component names in annotations",
                             "is-transitioning": $props.isTransitioning
                           }, {
                             default: _withCtx(() => [
@@ -4505,7 +4650,7 @@ function render40(_ctx, _cache, $props, $setup, $data, $options) {
                           class: _normalizeClass3([$setup.styles.toggleLabel, !$props.isDarkMode ? $setup.styles.light : ""])
                         },
                         [
-                          _cache[12] || (_cache[12] = _createTextVNode3(
+                          _cache[13] || (_cache[13] = _createTextVNode3(
                             " Clear on copy/send ",
                             -1
                             /* CACHED */
@@ -4541,7 +4686,7 @@ function render40(_ctx, _cache, $props, $setup, $data, $options) {
                   _createElementVNode40(
                     "label",
                     {
-                      class: _normalizeClass3([$setup.styles.settingsToggle, $setup.styles.settingsToggleMarginBottom])
+                      class: _normalizeClass3($setup.styles.settingsToggle)
                     },
                     [
                       _createElementVNode40("input", {
@@ -4577,6 +4722,73 @@ function render40(_ctx, _cache, $props, $setup, $data, $options) {
                     ],
                     2
                     /* CLASS */
+                  ),
+                  _createElementVNode40(
+                    "label",
+                    {
+                      class: _normalizeClass3([$setup.styles.settingsToggle, $setup.styles.settingsToggleMarginBottom])
+                    },
+                    [
+                      _createElementVNode40(
+                        "input",
+                        {
+                          type: "checkbox",
+                          id: "hideToolbar",
+                          checked: false,
+                          onChange: _cache[4] || (_cache[4] = ($event) => $setup.emit("hideToolbar"))
+                        },
+                        null,
+                        32
+                        /* NEED_HYDRATION */
+                      ),
+                      _createElementVNode40(
+                        "label",
+                        {
+                          class: _normalizeClass3($setup.styles.customCheckbox),
+                          for: "hideToolbar"
+                        },
+                        null,
+                        2
+                        /* CLASS */
+                      ),
+                      _createElementVNode40(
+                        "span",
+                        {
+                          class: _normalizeClass3([$setup.styles.toggleLabel, !$props.isDarkMode ? $setup.styles.light : ""])
+                        },
+                        [
+                          _cache[14] || (_cache[14] = _createTextVNode3(
+                            " Hide until restart ",
+                            -1
+                            /* CACHED */
+                          )),
+                          _createVNode($setup["ToolbarTooltip"], {
+                            content: "Hide the toolbar for the rest of this browser session. Reload or open a new tab to bring it back.",
+                            "is-transitioning": $props.isTransitioning
+                          }, {
+                            default: _withCtx(() => [
+                              _createElementVNode40(
+                                "span",
+                                {
+                                  class: _normalizeClass3([$setup.styles.helpIcon, $setup.styles.helpIconNudge2])
+                                },
+                                [
+                                  _createVNode($setup["IconHelp"], { size: 20 })
+                                ],
+                                2
+                                /* CLASS */
+                              )
+                            ]),
+                            _: 1
+                            /* STABLE */
+                          }, 8, ["is-transitioning"])
+                        ],
+                        2
+                        /* CLASS */
+                      )
+                    ],
+                    2
+                    /* CLASS */
                   )
                 ],
                 2
@@ -4592,10 +4804,10 @@ function render40(_ctx, _cache, $props, $setup, $data, $options) {
                     "button",
                     {
                       class: _normalizeClass3([$setup.styles.settingsNavLink, !$props.isDarkMode ? $setup.styles.light : ""]),
-                      onClick: _cache[4] || (_cache[4] = ($event) => $setup.emit("update:settingsPage", "automations"))
+                      onClick: _cache[5] || (_cache[5] = ($event) => $setup.emit("update:settingsPage", "automations"))
                     },
                     [
-                      _cache[14] || (_cache[14] = _createElementVNode40(
+                      _cache[16] || (_cache[16] = _createElementVNode40(
                         "span",
                         null,
                         "Manage MCP & Webhooks",
@@ -4618,7 +4830,7 @@ function render40(_ctx, _cache, $props, $setup, $data, $options) {
                             2
                             /* CLASS */
                           )) : _createCommentVNode10("v-if", true),
-                          _cache[13] || (_cache[13] = _createElementVNode40(
+                          _cache[15] || (_cache[15] = _createElementVNode40(
                             "svg",
                             {
                               width: "16",
@@ -4670,11 +4882,11 @@ function render40(_ctx, _cache, $props, $setup, $data, $options) {
                 "button",
                 {
                   class: _normalizeClass3([$setup.styles.settingsBackButton, !$props.isDarkMode ? $setup.styles.light : ""]),
-                  onClick: _cache[5] || (_cache[5] = ($event) => $setup.emit("update:settingsPage", "main"))
+                  onClick: _cache[6] || (_cache[6] = ($event) => $setup.emit("update:settingsPage", "main"))
                 },
                 [
                   _createVNode($setup["IconChevronLeft"], { size: 16 }),
-                  _cache[15] || (_cache[15] = _createElementVNode40(
+                  _cache[17] || (_cache[17] = _createElementVNode40(
                     "span",
                     null,
                     "Manage MCP & Webhooks",
@@ -4704,7 +4916,7 @@ function render40(_ctx, _cache, $props, $setup, $data, $options) {
                           class: _normalizeClass3([$setup.styles.automationHeader, !$props.isDarkMode ? $setup.styles.light : ""])
                         },
                         [
-                          _cache[16] || (_cache[16] = _createTextVNode3(
+                          _cache[18] || (_cache[18] = _createTextVNode3(
                             " MCP Connection ",
                             -1
                             /* CACHED */
@@ -4749,7 +4961,7 @@ function render40(_ctx, _cache, $props, $setup, $data, $options) {
                       style: { paddingBottom: "6px" }
                     },
                     [
-                      _cache[17] || (_cache[17] = _createTextVNode3(
+                      _cache[19] || (_cache[19] = _createTextVNode3(
                         " MCP connection allows agents to receive and act on annotations. ",
                         -1
                         /* CACHED */
@@ -4793,7 +5005,7 @@ function render40(_ctx, _cache, $props, $setup, $data, $options) {
                           class: _normalizeClass3([$setup.styles.automationHeader, !$props.isDarkMode ? $setup.styles.light : ""])
                         },
                         [
-                          _cache[18] || (_cache[18] = _createTextVNode3(
+                          _cache[20] || (_cache[20] = _createTextVNode3(
                             " Webhooks ",
                             -1
                             /* CACHED */
@@ -4851,7 +5063,7 @@ function render40(_ctx, _cache, $props, $setup, $data, $options) {
                                 type: "checkbox",
                                 checked: $props.settings.webhooksEnabled,
                                 disabled: !$props.settings.webhookUrl,
-                                onChange: _cache[6] || (_cache[6] = ($event) => $setup.updateSetting("webhooksEnabled", !$props.settings.webhooksEnabled))
+                                onChange: _cache[7] || (_cache[7] = ($event) => $setup.updateSetting("webhooksEnabled", !$props.settings.webhooksEnabled))
                               }, null, 40, _hoisted_8),
                               _createElementVNode40(
                                 "span",
@@ -4888,7 +5100,7 @@ function render40(_ctx, _cache, $props, $setup, $data, $options) {
                     placeholder: "Webhook URL",
                     value: $props.settings.webhookUrl,
                     style: _normalizeStyle11({ "--marker-color": $props.settings.annotationColor }),
-                    onInput: _cache[7] || (_cache[7] = ($event) => $setup.updateSetting("webhookUrl", $event.target.value))
+                    onInput: _cache[8] || (_cache[8] = ($event) => $setup.updateSetting("webhookUrl", $event.target.value))
                   }, null, 46, _hoisted_9)
                 ],
                 2
@@ -5959,7 +6171,9 @@ function generateOutput(annotations, pathname, detailLevel = "standard", reactMo
   output += "\n";
   annotations.forEach((a, i) => {
     if (detailLevel === "compact") {
-      output += `${i + 1}. **${a.element}**: ${a.comment}`;
+      output += `${i + 1}. **${a.element}**`;
+      if (a.sourceFile) output += ` (${a.sourceFile})`;
+      output += `: ${a.comment}`;
       if (a.selectedText) {
         output += ` (re: "${a.selectedText.slice(0, 30)}${a.selectedText.length > 30 ? "..." : ""}")`;
       }
@@ -5991,7 +6205,9 @@ function generateOutput(annotations, pathname, detailLevel = "standard", reactMo
 `;
       if (a.nearbyElements) output += `**Nearby Elements:** ${a.nearbyElements}
 `;
-      if (a.reactComponents) output += `**React:** ${a.reactComponents}
+      if (a.sourceFile) output += `**Source:** ${a.sourceFile}
+`;
+      if (a.reactComponents) output += `**Vue:** ${a.reactComponents}
 `;
       output += `**Feedback:** ${a.comment}
 
@@ -6001,7 +6217,9 @@ function generateOutput(annotations, pathname, detailLevel = "standard", reactMo
 `;
       output += `**Location:** ${a.elementPath}
 `;
-      if (a.reactComponents) output += `**React:** ${a.reactComponents}
+      if (a.sourceFile) output += `**Source:** ${a.sourceFile}
+`;
+      if (a.reactComponents) output += `**Vue:** ${a.reactComponents}
 `;
       if (detailLevel === "detailed") {
         if (a.cssClasses) output += `**Classes:** ${a.cssClasses}
@@ -6122,11 +6340,12 @@ function useKeyboardShortcuts(options) {
   return { handleKeyDown };
 }
 
-// vue-sfc:/Users/marcwtg_1/_Cowork/_GitHub/agentation-vue/src/vue/components/AgentationToolbar.vue
+// vue-sfc:/Users/viz/dev/agentation-vue/src/vue/components/AgentationToolbar.vue
 import { createCommentVNode as _createCommentVNode11, createVNode as _createVNode2, toDisplayString as _toDisplayString5, normalizeClass as _normalizeClass4, normalizeStyle as _normalizeStyle12, openBlock as _openBlock41, createElementBlock as _createElementBlock41, createElementVNode as _createElementVNode41, withModifiers as _withModifiers4, createTextVNode as _createTextVNode4, renderList as _renderList3, Fragment as _Fragment5, createBlock as _createBlock4, Teleport as _Teleport2 } from "vue";
 var _sfc_main41 = /* @__PURE__ */ _defineComponent41({
   __name: "AgentationToolbar",
   props: {
+    className: { type: String, required: false },
     demoAnnotations: { type: Array, required: false },
     demoDelay: { type: Number, required: false, default: 1e3 },
     enableDemoMode: { type: Boolean, required: false, default: false },
@@ -6195,8 +6414,13 @@ var _sfc_main41 = /* @__PURE__ */ _defineComponent41({
     const cleared = ref11(false);
     const isClearing = ref11(false);
     const hoveredMarkerId = ref11(null);
-    const tooltipExitingId = ref11(null);
     const hoveredTargetElement = ref11(null);
+    const isToolbarHidden = ref11(false);
+    const isToolbarHiding = ref11(false);
+    const tooltipSessionActive = ref11(false);
+    let tooltipSessionTimerRef = null;
+    const portalWrapperRef = ref11(null);
+    const stopBubble = (e) => e.stopPropagation();
     const hoveredTargetElements = ref11([]);
     const deletingMarkerId = ref11(null);
     const renumberFrom = ref11(null);
@@ -6283,7 +6507,7 @@ var _sfc_main41 = /* @__PURE__ */ _defineComponent41({
     const hasAnnotations = computed3(() => annotations.value.length > 0);
     const shouldShowMarkers = computed3(() => isActive.value && showMarkers.value);
     const visibleAnnotations = computed3(
-      () => annotations.value.filter((a) => !exitingMarkers.value.has(a.id))
+      () => annotations.value.filter((a) => !exitingMarkers.value.has(a.id) && isRenderableAnnotation(a))
     );
     const exitingAnnotationsList = computed3(
       () => annotations.value.filter((a) => exitingMarkers.value.has(a.id))
@@ -6328,6 +6552,37 @@ var _sfc_main41 = /* @__PURE__ */ _defineComponent41({
     function showTooltipsAgain() {
       tooltipsHidden.value = false;
     }
+    function hideToolbarTemporarily() {
+      isToolbarHiding.value = true;
+      originalSetTimeout(() => {
+        isToolbarHidden.value = true;
+        isToolbarHiding.value = false;
+        saveToolbarHidden(true);
+      }, 400);
+    }
+    function handleControlsMouseEnter() {
+      tooltipSessionTimerRef = originalSetTimeout(() => {
+        tooltipSessionActive.value = true;
+      }, 850);
+    }
+    function handleControlsMouseLeave() {
+      if (tooltipSessionTimerRef) {
+        clearTimeout(tooltipSessionTimerRef);
+        tooltipSessionTimerRef = null;
+      }
+      tooltipSessionActive.value = false;
+      showTooltipsAgain();
+    }
+    function isRenderableAnnotation(a) {
+      return a.status !== "resolved" && a.status !== "dismissed";
+    }
+    function getSourceFileForElement(element) {
+      const result = getSourceLocation(element);
+      if (result.found && result.source) {
+        return `${result.source.fileName}:${result.source.lineNumber}`;
+      }
+      return void 0;
+    }
     function persistAnnotations() {
       if (mounted.value && annotations.value.length > 0) {
         if (currentSessionId.value) {
@@ -6364,6 +6619,7 @@ var _sfc_main41 = /* @__PURE__ */ _defineComponent41({
         elementBoundingBoxes: pa.elementBoundingBoxes,
         drawingIndex: pa.drawingIndex,
         strokeId: pa.strokeId,
+        sourceFile: pa.sourceFile,
         ...props.endpoint && currentSessionId.value ? {
           sessionId: currentSessionId.value,
           url: typeof window !== "undefined" ? window.location.href : void 0,
@@ -6710,19 +6966,12 @@ var _sfc_main41 = /* @__PURE__ */ _defineComponent41({
     }
     function handleMarkerHover(annotation) {
       if (!annotation) {
-        if (hoveredMarkerId.value) {
-          tooltipExitingId.value = hoveredMarkerId.value;
-          originalSetTimeout(() => {
-            tooltipExitingId.value = null;
-          }, 100);
-        }
         hoveredMarkerId.value = null;
         hoveredTargetElement.value = null;
         hoveredTargetElements.value = [];
         hoveredDrawingIdx.value = null;
         return;
       }
-      tooltipExitingId.value = null;
       hoveredMarkerId.value = annotation.id;
       if (annotation.drawingIndex != null && annotation.drawingIndex < drawStrokes.value.length) {
         hoveredDrawingIdx.value = annotation.drawingIndex;
@@ -6786,7 +7035,8 @@ var _sfc_main41 = /* @__PURE__ */ _defineComponent41({
           nearbyElements: getNearbyElements(firstEl),
           cssClasses: getElementClasses(firstEl),
           nearbyText: getNearbyText(firstEl),
-          reactComponents: firstItem.reactComponents
+          reactComponents: firstItem.reactComponents,
+          sourceFile: getSourceFileForElement(firstEl)
         };
       } else {
         const bounds = {
@@ -6827,7 +7077,8 @@ var _sfc_main41 = /* @__PURE__ */ _defineComponent41({
           computedStylesObj: getDetailedComputedStyles(firstEl),
           nearbyElements: getNearbyElements(firstEl),
           cssClasses: getElementClasses(firstEl),
-          nearbyText: getNearbyText(firstEl)
+          nearbyText: getNearbyText(firstEl),
+          sourceFile: getSourceFileForElement(firstEl)
         };
       }
       multiSelect.clear();
@@ -7051,7 +7302,8 @@ var _sfc_main41 = /* @__PURE__ */ _defineComponent41({
             reactComponents: reactComponents2 ?? void 0,
             targetElement: elementUnder2 ?? void 0,
             drawingIndex: strokeIdx,
-            strokeId: stroke.id
+            strokeId: stroke.id,
+            sourceFile: elementUnder2 ? getSourceFileForElement(elementUnder2) : void 0
           };
           clearHover();
           hoveredDrawingIdx.value = null;
@@ -7115,7 +7367,8 @@ var _sfc_main41 = /* @__PURE__ */ _defineComponent41({
         computedStylesObj: getDetailedComputedStyles(elementUnder),
         nearbyElements: getNearbyElements(elementUnder),
         reactComponents: reactComponents ?? void 0,
-        targetElement: elementUnder
+        targetElement: elementUnder,
+        sourceFile: getSourceFileForElement(elementUnder)
       };
       clearHover();
     }
@@ -7175,7 +7428,8 @@ var _sfc_main41 = /* @__PURE__ */ _defineComponent41({
           computedStylesObj: getDetailedComputedStyles(firstElement),
           nearbyElements: getNearbyElements(firstElement),
           cssClasses: getElementClasses(firstElement),
-          nearbyText: getNearbyText(firstElement)
+          nearbyText: getNearbyText(firstElement),
+          sourceFile: getSourceFileForElement(firstElement)
         };
       } else {
         const width = Math.abs(result.right - result.left);
@@ -7207,9 +7461,9 @@ var _sfc_main41 = /* @__PURE__ */ _defineComponent41({
         let newX = dragStartPos.value.toolbarX + deltaX;
         let newY = dragStartPos.value.toolbarY + deltaY;
         const padding = 20;
-        const wrapperWidth = 337;
+        const wrapperWidth = 297;
         const toolbarHeight = 44;
-        const contentWidth = isActive.value ? connectionStatus.value === "connected" ? 337 : 297 : 44;
+        const contentWidth = isActive.value ? connectionStatus.value === "connected" ? 297 : 257 : 44;
         const contentOffset = wrapperWidth - contentWidth;
         const minX = padding - contentOffset;
         const maxX = window.innerWidth - padding - wrapperWidth;
@@ -7378,7 +7632,8 @@ var _sfc_main41 = /* @__PURE__ */ _defineComponent41({
             reactComponents: reactComponents ?? void 0,
             targetElement: centerEl ?? void 0,
             drawingIndex: newStrokeIdx,
-            strokeId: newStrokeId
+            strokeId: newStrokeId,
+            sourceFile: centerEl ? getSourceFileForElement(centerEl) : void 0
           };
           clearHover();
         }
@@ -7450,7 +7705,7 @@ var _sfc_main41 = /* @__PURE__ */ _defineComponent41({
     function constrainPosition() {
       if (!toolbarPosition.value) return;
       const padding = 20;
-      const wrapperWidth = 337;
+      const wrapperWidth = 297;
       const toolbarHeight = 44;
       const contentWidth = isActive.value ? connectionStatus.value === "connected" ? 297 : 257 : 44;
       const contentOffset = wrapperWidth - contentWidth;
@@ -7468,6 +7723,15 @@ var _sfc_main41 = /* @__PURE__ */ _defineComponent41({
       scrollY.value = window.scrollY;
       const stored = loadAnnotations(pathname);
       annotations.value = stored;
+      if (loadToolbarHidden()) {
+        isToolbarHidden.value = true;
+      }
+      const portalEl = portalWrapperRef.value;
+      if (portalEl) {
+        portalEl.addEventListener("mousedown", stopBubble);
+        portalEl.addEventListener("click", stopBubble);
+        portalEl.addEventListener("pointerdown", stopBubble);
+      }
       window.addEventListener("scroll", handleScroll, { passive: true });
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("click", handleClick, true);
@@ -7537,6 +7801,11 @@ var _sfc_main41 = /* @__PURE__ */ _defineComponent41({
       window.removeEventListener("resize", constrainPosition);
       if (scrollTimeoutId) clearTimeout(scrollTimeoutId);
       if (cleanupDrawListeners) cleanupDrawListeners();
+      if (portalWrapperRef.value) {
+        portalWrapperRef.value.removeEventListener("mousedown", stopBubble);
+        portalWrapperRef.value.removeEventListener("click", stopBubble);
+        portalWrapperRef.value.removeEventListener("pointerdown", stopBubble);
+      }
       removeCursorStyles();
       unfreeze();
     });
@@ -7550,7 +7819,11 @@ var _sfc_main41 = /* @__PURE__ */ _defineComponent41({
       if (!active) return void 0;
       return { color, backgroundColor: hexToRgba(color, 0.25) };
     }
-    const __returned__ = { _window, _document, props, identifyElementWithVue, settings, isDarkMode, showEntranceAnimation, mounted, toolbarPosition, isDraggingToolbar, dragStartPos, dragRotation, isLocalhost, pathname, getEffectiveReactMode, loadFromStorage, saveSettings, saveTheme, saveToolbarPosition, handleToolbarMouseDown, getJustFinishedToolbarDrag, setJustFinishedToolbarDrag, isActive, showMarkers, scrollY, isScrolling, isFrozen, showSettings, showSettingsVisible, settingsPage, isTransitioning, tooltipsHidden, copied, sendState, cleared, isClearing, hoveredMarkerId, tooltipExitingId, hoveredTargetElement, hoveredTargetElements, deletingMarkerId, renumberFrom, isDrawMode, drawStrokes, hoveredDrawingIdx, drawCanvasRef, dimAmountRef, visualHighlightRef, exitingStrokeIdRef, exitingAlphaRef, drawStrokesRef, updateDrawStrokesRef, redrawCanvas, resizeCanvas, getIsDrawing, setIsDrawing, getCurrentStroke, setCurrentStroke, pendingAnnotation, pendingExiting, editingAnnotation, editExiting, editingTargetElement, editingTargetElements, cancelPending, startEditing, cancelEditing, closeEditingForDelete, resetAnnotationState, markersVisible, markersExiting, animatedMarkers, exitingMarkers, getShouldShowMarkers, updateVisibility, annotations, get annotationsSnapshot() {
+    const __returned__ = { _window, _document, props, identifyElementWithVue, settings, isDarkMode, showEntranceAnimation, mounted, toolbarPosition, isDraggingToolbar, dragStartPos, dragRotation, isLocalhost, pathname, getEffectiveReactMode, loadFromStorage, saveSettings, saveTheme, saveToolbarPosition, handleToolbarMouseDown, getJustFinishedToolbarDrag, setJustFinishedToolbarDrag, isActive, showMarkers, scrollY, isScrolling, isFrozen, showSettings, showSettingsVisible, settingsPage, isTransitioning, tooltipsHidden, copied, sendState, cleared, isClearing, hoveredMarkerId, hoveredTargetElement, isToolbarHidden, isToolbarHiding, tooltipSessionActive, get tooltipSessionTimerRef() {
+      return tooltipSessionTimerRef;
+    }, set tooltipSessionTimerRef(v) {
+      tooltipSessionTimerRef = v;
+    }, portalWrapperRef, stopBubble, hoveredTargetElements, deletingMarkerId, renumberFrom, isDrawMode, drawStrokes, hoveredDrawingIdx, drawCanvasRef, dimAmountRef, visualHighlightRef, exitingStrokeIdRef, exitingAlphaRef, drawStrokesRef, updateDrawStrokesRef, redrawCanvas, resizeCanvas, getIsDrawing, setIsDrawing, getCurrentStroke, setCurrentStroke, pendingAnnotation, pendingExiting, editingAnnotation, editExiting, editingTargetElement, editingTargetElements, cancelPending, startEditing, cancelEditing, closeEditingForDelete, resetAnnotationState, markersVisible, markersExiting, animatedMarkers, exitingMarkers, getShouldShowMarkers, updateVisibility, annotations, get annotationsSnapshot() {
       return annotationsSnapshot;
     }, set annotationsSnapshot(v) {
       annotationsSnapshot = v;
@@ -7562,7 +7835,7 @@ var _sfc_main41 = /* @__PURE__ */ _defineComponent41({
       return scrollTimeoutId;
     }, set scrollTimeoutId(v) {
       scrollTimeoutId = v;
-    }, dragRectRef, highlightsContainerRef, effectiveReactMode, hasAnnotations, shouldShowMarkers, visibleAnnotations, exitingAnnotationsList, fireWebhook, freezeAnimations, unfreezeAnimations, toggleFreeze, hideTooltipsUntilMouseLeave, showTooltipsAgain, persistAnnotations, addAnnotation, cancelAnnotation, deleteAnnotation: deleteAnnotation2, updateAnnotation: updateAnnotation2, startEditAnnotation, cancelEditAnnotation, clearAll, copyOutput, sendToWebhook, handleMarkerHover, createMultiSelectPendingAnnotation, handleKeyDown, get prevDragging() {
+    }, dragRectRef, highlightsContainerRef, effectiveReactMode, hasAnnotations, shouldShowMarkers, visibleAnnotations, exitingAnnotationsList, fireWebhook, freezeAnimations, unfreezeAnimations, toggleFreeze, hideTooltipsUntilMouseLeave, showTooltipsAgain, hideToolbarTemporarily, handleControlsMouseEnter, handleControlsMouseLeave, isRenderableAnnotation, getSourceFileForElement, persistAnnotations, addAnnotation, cancelAnnotation, deleteAnnotation: deleteAnnotation2, updateAnnotation: updateAnnotation2, startEditAnnotation, cancelEditAnnotation, clearAll, copyOutput, sendToWebhook, handleMarkerHover, createMultiSelectPendingAnnotation, handleKeyDown, get prevDragging() {
       return prevDragging;
     }, set prevDragging(v) {
       prevDragging = v;
@@ -7609,945 +7882,966 @@ var _sfc_main41 = /* @__PURE__ */ _defineComponent41({
     return __returned__;
   }
 });
-var _hoisted_139 = ["role", "tabindex", "title"];
-var _hoisted_24 = ["data-active"];
+var _hoisted_139 = {
+  ref: "portalWrapperRef",
+  style: { "display": "contents" }
+};
+var _hoisted_24 = ["role", "tabindex", "title"];
 var _hoisted_33 = ["data-active"];
-var _hoisted_43 = ["disabled"];
-var _hoisted_53 = ["disabled", "data-active"];
-var _hoisted_63 = ["disabled", "data-no-hover", "tabindex"];
-var _hoisted_73 = ["disabled"];
-var _hoisted_82 = ["title"];
+var _hoisted_43 = ["data-active"];
+var _hoisted_53 = ["disabled"];
+var _hoisted_63 = ["disabled", "data-active"];
+var _hoisted_73 = ["disabled", "data-no-hover", "tabindex"];
+var _hoisted_82 = ["disabled"];
+var _hoisted_92 = ["title"];
 function render41(_ctx, _cache, $props, $setup, $data, $options) {
   return _openBlock41(), _createBlock4(_Teleport2, { to: "body" }, [
-    _createCommentVNode11(" Toolbar "),
     _createElementVNode41(
       "div",
-      {
-        class: _normalizeClass4($setup.styles.toolbar),
-        "data-feedback-toolbar": "",
-        "data-agentation-root": "",
-        style: _normalizeStyle12($setup.toolbarPosition ? { left: $setup.toolbarPosition.x + "px", top: $setup.toolbarPosition.y + "px", right: "auto", bottom: "auto" } : void 0)
-      },
+      _hoisted_139,
       [
-        _createElementVNode41("div", {
-          class: _normalizeClass4([
-            $setup.styles.toolbarContainer,
-            !$setup.isDarkMode ? $setup.styles.light : "",
-            $setup.isActive ? $setup.styles.expanded : $setup.styles.collapsed,
-            $setup.showEntranceAnimation ? $setup.styles.entrance : "",
-            $setup.isDraggingToolbar ? $setup.styles.dragging : "",
-            !$setup.settings.webhooksEnabled && ($setup.isValidUrl($setup.settings.webhookUrl) || $setup.isValidUrl($props.webhookUrl || "")) ? $setup.styles.serverConnected : ""
-          ]),
-          onClick: _cache[11] || (_cache[11] = ($event) => !$setup.isActive ? $setup.getJustFinishedToolbarDrag() ? ($setup.setJustFinishedToolbarDrag(false), $event.preventDefault()) : $setup.isActive = true : void 0),
-          onMousedown: _cache[12] || (_cache[12] = (e) => $setup.handleToolbarMouseDown(e, $setup.isActive, $setup.connectionStatus)),
-          role: !$setup.isActive ? "button" : void 0,
-          tabindex: !$setup.isActive ? 0 : -1,
-          title: !$setup.isActive ? "Start feedback mode" : void 0,
-          style: _normalizeStyle12($setup.isDraggingToolbar ? { transform: `scale(1.05) rotate(${$setup.dragRotation}deg)`, cursor: "grabbing" } : void 0)
-        }, [
-          _createCommentVNode11(" Toggle content (collapsed) "),
-          _createElementVNode41(
-            "div",
-            {
-              class: _normalizeClass4([$setup.styles.toggleContent, !$setup.isActive ? $setup.styles.visible : $setup.styles.hidden])
-            },
-            [
-              _createVNode2($setup["IconListSparkle"], { size: 24 }),
-              $setup.hasAnnotations ? (_openBlock41(), _createElementBlock41(
-                "span",
-                {
-                  key: 0,
-                  class: _normalizeClass4([$setup.styles.badge, $setup.isActive ? $setup.styles.fadeOut : "", $setup.showEntranceAnimation ? $setup.styles.entrance : ""]),
-                  style: _normalizeStyle12({ backgroundColor: $setup.settings.annotationColor })
-                },
-                _toDisplayString5($setup.annotations.length),
-                7
-                /* TEXT, CLASS, STYLE */
-              )) : _createCommentVNode11("v-if", true)
-            ],
-            2
-            /* CLASS */
-          ),
-          _createCommentVNode11(" Controls content (expanded) "),
-          _createElementVNode41(
-            "div",
-            {
-              class: _normalizeClass4([
-                $setup.styles.controlsContent,
-                $setup.isActive ? $setup.styles.visible : $setup.styles.hidden,
-                $setup.toolbarPosition && $setup.toolbarPosition.y < 100 ? $setup.styles.tooltipBelow : "",
-                $setup.tooltipsHidden || $setup.showSettings ? $setup.styles.tooltipsHidden : ""
-              ]),
-              onMouseleave: $setup.showTooltipsAgain
-            },
-            [
-              _createElementVNode41(
-                "div",
-                {
-                  class: _normalizeClass4([$setup.styles.buttonWrapper, $setup.toolbarPosition && $setup.toolbarPosition.x < 120 ? $setup.styles.buttonWrapperAlignLeft : ""])
-                },
-                [
-                  _createElementVNode41("button", {
-                    class: _normalizeClass4([$setup.styles.controlButton, !$setup.isDarkMode ? $setup.styles.light : ""]),
-                    "data-active": $setup.isFrozen,
-                    onClick: _cache[0] || (_cache[0] = _withModifiers4(($event) => {
-                      $setup.hideTooltipsUntilMouseLeave();
-                      $setup.toggleFreeze();
-                    }, ["stop"]))
-                  }, [
-                    _createVNode2($setup["IconPausePlayAnimated"], {
-                      size: 24,
-                      "is-paused": $setup.isFrozen
-                    }, null, 8, ["is-paused"])
-                  ], 10, _hoisted_24),
-                  _createElementVNode41(
-                    "span",
-                    {
-                      class: _normalizeClass4($setup.styles.buttonTooltip)
-                    },
-                    [
-                      _createTextVNode4(
-                        _toDisplayString5($setup.isFrozen ? "Resume animations" : "Pause animations") + " ",
-                        1
-                        /* TEXT */
-                      ),
-                      _createElementVNode41(
-                        "span",
-                        {
-                          class: _normalizeClass4($setup.styles.shortcut)
-                        },
-                        "P",
-                        2
-                        /* CLASS */
-                      )
-                    ],
-                    2
-                    /* CLASS */
-                  )
-                ],
-                2
-                /* CLASS */
-              ),
-              _createElementVNode41(
-                "div",
-                {
-                  class: _normalizeClass4($setup.styles.buttonWrapper)
-                },
-                [
-                  _createElementVNode41("button", {
-                    class: _normalizeClass4([$setup.styles.controlButton, !$setup.isDarkMode ? $setup.styles.light : ""]),
-                    "data-active": $setup.isDrawMode,
-                    onClick: _cache[1] || (_cache[1] = _withModifiers4(($event) => {
-                      $setup.hideTooltipsUntilMouseLeave();
-                      $setup.isDrawMode = !$setup.isDrawMode;
-                    }, ["stop"]))
-                  }, [
-                    _createVNode2($setup["IconPencil"], { size: 24 })
-                  ], 10, _hoisted_33),
-                  _createElementVNode41(
-                    "span",
-                    {
-                      class: _normalizeClass4($setup.styles.buttonTooltip)
-                    },
-                    [
-                      _createTextVNode4(
-                        _toDisplayString5($setup.isDrawMode ? "Exit draw mode" : "Draw mode") + " ",
-                        1
-                        /* TEXT */
-                      ),
-                      _createElementVNode41(
-                        "span",
-                        {
-                          class: _normalizeClass4($setup.styles.shortcut)
-                        },
-                        "D",
-                        2
-                        /* CLASS */
-                      )
-                    ],
-                    2
-                    /* CLASS */
-                  )
-                ],
-                2
-                /* CLASS */
-              ),
-              _createElementVNode41(
-                "div",
-                {
-                  class: _normalizeClass4($setup.styles.buttonWrapper)
-                },
-                [
-                  _createElementVNode41("button", {
-                    class: _normalizeClass4([$setup.styles.controlButton, !$setup.isDarkMode ? $setup.styles.light : ""]),
-                    disabled: !$setup.hasAnnotations,
-                    onClick: _cache[2] || (_cache[2] = _withModifiers4(($event) => {
-                      $setup.hideTooltipsUntilMouseLeave();
-                      $setup.showMarkers = !$setup.showMarkers;
-                      if ($setup.isDrawMode) $setup.isDrawMode = false;
-                    }, ["stop"]))
-                  }, [
-                    _createVNode2($setup["IconEyeAnimated"], {
-                      size: 24,
-                      "is-open": $setup.showMarkers
-                    }, null, 8, ["is-open"])
-                  ], 10, _hoisted_43),
-                  _createElementVNode41(
-                    "span",
-                    {
-                      class: _normalizeClass4($setup.styles.buttonTooltip)
-                    },
-                    [
-                      _createTextVNode4(
-                        _toDisplayString5($setup.showMarkers ? "Hide markers" : "Show markers") + " ",
-                        1
-                        /* TEXT */
-                      ),
-                      _createElementVNode41(
-                        "span",
-                        {
-                          class: _normalizeClass4($setup.styles.shortcut)
-                        },
-                        "H",
-                        2
-                        /* CLASS */
-                      )
-                    ],
-                    2
-                    /* CLASS */
-                  )
-                ],
-                2
-                /* CLASS */
-              ),
-              _createElementVNode41(
-                "div",
-                {
-                  class: _normalizeClass4($setup.styles.buttonWrapper)
-                },
-                [
-                  _createElementVNode41("button", {
-                    class: _normalizeClass4([$setup.styles.controlButton, !$setup.isDarkMode ? $setup.styles.light : "", $setup.copied ? $setup.styles.statusShowing : ""]),
-                    disabled: !$setup.hasAnnotations && $setup.drawStrokes.length === 0,
-                    "data-active": $setup.copied,
-                    onClick: _cache[3] || (_cache[3] = _withModifiers4(($event) => {
-                      $setup.hideTooltipsUntilMouseLeave();
-                      $setup.copyOutput();
-                    }, ["stop"]))
-                  }, [
-                    _createVNode2($setup["IconCopyAnimated"], {
-                      size: 24,
-                      copied: $setup.copied
-                    }, null, 8, ["copied"])
-                  ], 10, _hoisted_53),
-                  _createElementVNode41(
-                    "span",
-                    {
-                      class: _normalizeClass4($setup.styles.buttonTooltip)
-                    },
-                    [
-                      _cache[15] || (_cache[15] = _createTextVNode4(
-                        " Copy feedback ",
-                        -1
-                        /* CACHED */
-                      )),
-                      _createElementVNode41(
-                        "span",
-                        {
-                          class: _normalizeClass4($setup.styles.shortcut)
-                        },
-                        "C",
-                        2
-                        /* CLASS */
-                      )
-                    ],
-                    2
-                    /* CLASS */
-                  )
-                ],
-                2
-                /* CLASS */
-              ),
-              _createCommentVNode11(" Send button "),
-              _createElementVNode41(
-                "div",
-                {
-                  class: _normalizeClass4([$setup.styles.buttonWrapper, $setup.styles.sendButtonWrapper, !$setup.settings.webhooksEnabled && ($setup.isValidUrl($setup.settings.webhookUrl) || $setup.isValidUrl($props.webhookUrl || "")) ? $setup.styles.sendButtonVisible : ""])
-                },
-                [
-                  _createElementVNode41("button", {
-                    class: _normalizeClass4([$setup.styles.controlButton, !$setup.isDarkMode ? $setup.styles.light : "", $setup.sendState === "sent" || $setup.sendState === "failed" ? $setup.styles.statusShowing : ""]),
-                    disabled: !$setup.hasAnnotations || !$setup.isValidUrl($setup.settings.webhookUrl) && !$setup.isValidUrl($props.webhookUrl || "") || $setup.sendState === "sending",
-                    "data-no-hover": $setup.sendState === "sent" || $setup.sendState === "failed",
-                    tabindex: $setup.isValidUrl($setup.settings.webhookUrl) || $setup.isValidUrl($props.webhookUrl || "") ? 0 : -1,
-                    onClick: _cache[4] || (_cache[4] = _withModifiers4(($event) => {
-                      $setup.hideTooltipsUntilMouseLeave();
-                      $setup.sendToWebhook();
-                    }, ["stop"]))
-                  }, [
-                    _createVNode2($setup["IconSendArrow"], {
-                      size: 24,
-                      state: $setup.sendState
-                    }, null, 8, ["state"]),
-                    $setup.hasAnnotations && $setup.sendState === "idle" ? (_openBlock41(), _createElementBlock41(
-                      "span",
-                      {
-                        key: 0,
-                        class: _normalizeClass4([$setup.styles.buttonBadge, !$setup.isDarkMode ? $setup.styles.light : ""]),
-                        style: _normalizeStyle12({ backgroundColor: $setup.settings.annotationColor })
-                      },
-                      _toDisplayString5($setup.annotations.length),
-                      7
-                      /* TEXT, CLASS, STYLE */
-                    )) : _createCommentVNode11("v-if", true)
-                  ], 10, _hoisted_63),
-                  _createElementVNode41(
-                    "span",
-                    {
-                      class: _normalizeClass4($setup.styles.buttonTooltip)
-                    },
-                    [
-                      _cache[16] || (_cache[16] = _createTextVNode4(
-                        " Send Annotations ",
-                        -1
-                        /* CACHED */
-                      )),
-                      _createElementVNode41(
-                        "span",
-                        {
-                          class: _normalizeClass4($setup.styles.shortcut)
-                        },
-                        "S",
-                        2
-                        /* CLASS */
-                      )
-                    ],
-                    2
-                    /* CLASS */
-                  )
-                ],
-                2
-                /* CLASS */
-              ),
-              _createElementVNode41(
-                "div",
-                {
-                  class: _normalizeClass4($setup.styles.buttonWrapper)
-                },
-                [
-                  _createElementVNode41("button", {
-                    class: _normalizeClass4([$setup.styles.controlButton, !$setup.isDarkMode ? $setup.styles.light : ""]),
-                    disabled: !$setup.hasAnnotations && $setup.drawStrokes.length === 0,
-                    "data-danger": "",
-                    onClick: _cache[5] || (_cache[5] = _withModifiers4(($event) => {
-                      $setup.hideTooltipsUntilMouseLeave();
-                      $setup.clearAll();
-                    }, ["stop"]))
-                  }, [
-                    _createVNode2($setup["IconTrashAlt"], { size: 24 })
-                  ], 10, _hoisted_73),
-                  _createElementVNode41(
-                    "span",
-                    {
-                      class: _normalizeClass4($setup.styles.buttonTooltip)
-                    },
-                    [
-                      _cache[17] || (_cache[17] = _createTextVNode4(
-                        " Clear all ",
-                        -1
-                        /* CACHED */
-                      )),
-                      _createElementVNode41(
-                        "span",
-                        {
-                          class: _normalizeClass4($setup.styles.shortcut)
-                        },
-                        "X",
-                        2
-                        /* CLASS */
-                      )
-                    ],
-                    2
-                    /* CLASS */
-                  )
-                ],
-                2
-                /* CLASS */
-              ),
-              _createElementVNode41(
-                "div",
-                {
-                  class: _normalizeClass4($setup.styles.buttonWrapper)
-                },
-                [
-                  _createElementVNode41(
-                    "button",
-                    {
-                      class: _normalizeClass4([$setup.styles.controlButton, !$setup.isDarkMode ? $setup.styles.light : ""]),
-                      onClick: _cache[6] || (_cache[6] = _withModifiers4(($event) => {
-                        $setup.hideTooltipsUntilMouseLeave();
-                        $setup.showSettings = !$setup.showSettings;
-                      }, ["stop"]))
-                    },
-                    [
-                      _createVNode2($setup["IconGear"], { size: 24 })
-                    ],
-                    2
-                    /* CLASS */
-                  ),
-                  $props.endpoint && $setup.connectionStatus !== "disconnected" ? (_openBlock41(), _createElementBlock41("span", {
-                    key: 0,
-                    class: _normalizeClass4([$setup.styles.mcpIndicator, !$setup.isDarkMode ? $setup.styles.light : "", $setup.styles[$setup.connectionStatus], $setup.showSettings ? $setup.styles.hidden : ""]),
-                    title: $setup.connectionStatus === "connected" ? "MCP Connected" : "MCP Connecting..."
-                  }, null, 10, _hoisted_82)) : _createCommentVNode11("v-if", true),
-                  _createElementVNode41(
-                    "span",
-                    {
-                      class: _normalizeClass4($setup.styles.buttonTooltip)
-                    },
-                    "Settings",
-                    2
-                    /* CLASS */
-                  )
-                ],
-                2
-                /* CLASS */
-              ),
-              _createElementVNode41(
-                "div",
-                {
-                  class: _normalizeClass4([$setup.styles.divider, !$setup.isDarkMode ? $setup.styles.light : ""])
-                },
-                null,
-                2
-                /* CLASS */
-              ),
-              _createElementVNode41(
-                "div",
-                {
-                  class: _normalizeClass4([$setup.styles.buttonWrapper, $setup.toolbarPosition && $setup.toolbarPosition.x > $setup._window.innerWidth - 120 ? $setup.styles.buttonWrapperAlignRight : ""])
-                },
-                [
-                  _createElementVNode41(
-                    "button",
-                    {
-                      class: _normalizeClass4([$setup.styles.controlButton, !$setup.isDarkMode ? $setup.styles.light : ""]),
-                      onClick: _cache[7] || (_cache[7] = _withModifiers4(($event) => {
-                        $setup.hideTooltipsUntilMouseLeave();
-                        $setup.isActive = false;
-                      }, ["stop"]))
-                    },
-                    [
-                      _createVNode2($setup["IconXmarkLarge"], { size: 24 })
-                    ],
-                    2
-                    /* CLASS */
-                  ),
-                  _createElementVNode41(
-                    "span",
-                    {
-                      class: _normalizeClass4($setup.styles.buttonTooltip)
-                    },
-                    [
-                      _cache[18] || (_cache[18] = _createTextVNode4(
-                        " Exit ",
-                        -1
-                        /* CACHED */
-                      )),
-                      _createElementVNode41(
-                        "span",
-                        {
-                          class: _normalizeClass4($setup.styles.shortcut)
-                        },
-                        "Esc",
-                        2
-                        /* CLASS */
-                      )
-                    ],
-                    2
-                    /* CLASS */
-                  )
-                ],
-                2
-                /* CLASS */
-              )
-            ],
-            34
-            /* CLASS, NEED_HYDRATION */
-          ),
-          _createCommentVNode11(" Settings Panel "),
-          _createVNode2($setup["ToolbarSettingsPanel"], {
-            settings: $setup.settings,
-            "is-dark-mode": $setup.isDarkMode,
-            "show-settings-visible": $setup.showSettingsVisible,
-            "toolbar-position": $setup.toolbarPosition,
-            "is-localhost": $setup.isLocalhost,
-            endpoint: $props.endpoint,
-            "connection-status": $setup.connectionStatus,
-            "is-transitioning": $setup.isTransitioning,
-            "settings-page": $setup.settingsPage,
-            "onUpdate:isDarkMode": _cache[8] || (_cache[8] = ($event) => $setup.isDarkMode = $event),
-            "onUpdate:settings": _cache[9] || (_cache[9] = ($event) => Object.assign($setup.settings, $event)),
-            "onUpdate:settingsPage": _cache[10] || (_cache[10] = ($event) => $setup.settingsPage = $event)
-          }, null, 8, ["settings", "is-dark-mode", "show-settings-visible", "toolbar-position", "is-localhost", "endpoint", "connection-status", "is-transitioning", "settings-page"])
-        ], 46, _hoisted_139)
-      ],
-      6
-      /* CLASS, STYLE */
-    ),
-    _createCommentVNode11(" Draw canvas "),
-    _createElementVNode41(
-      "canvas",
-      {
-        ref: "drawCanvasRef",
-        class: _normalizeClass4([$setup.styles.drawCanvas, $setup.isDrawMode ? $setup.styles.active : ""]),
-        style: _normalizeStyle12({ opacity: $setup.shouldShowMarkers ? 1 : 0, transition: "opacity 0.15s ease" }),
-        "data-feedback-toolbar": ""
-      },
-      null,
-      6
-      /* CLASS, STYLE */
-    ),
-    _createCommentVNode11(" Markers layer (normal scrolling) "),
-    _createElementVNode41(
-      "div",
-      {
-        class: _normalizeClass4($setup.styles.markersLayer),
-        "data-feedback-toolbar": ""
-      },
-      [
-        $setup.markersVisible ? (_openBlock41(), _createElementBlock41(
+        _createCommentVNode11(" Toolbar "),
+        !$setup.isToolbarHidden ? (_openBlock41(), _createElementBlock41(
           _Fragment5,
           { key: 0 },
           [
-            (_openBlock41(true), _createElementBlock41(
-              _Fragment5,
-              null,
-              _renderList3($setup.visibleAnnotations.filter((a) => !a.isFixed), (annotation, index) => {
-                return _openBlock41(), _createBlock4($setup["AnnotationMarker"], {
-                  key: annotation.id,
-                  annotation,
-                  "global-index": $setup.annotations.findIndex((a) => a.id === annotation.id),
-                  index,
-                  "total-visible": $setup.visibleAnnotations.filter((a) => !a.isFixed).length,
-                  "is-hovered": !$setup.markersExiting && $setup.hoveredMarkerId === annotation.id,
-                  "is-deleting": $setup.deletingMarkerId === annotation.id,
-                  "is-editing": !!$setup.editingAnnotation,
-                  "marker-color": annotation.isMultiSelect ? "#34C759" : $setup.settings.annotationColor,
-                  "marker-click-behavior": $setup.settings.markerClickBehavior,
-                  "markers-exiting": $setup.markersExiting,
-                  "is-clearing": $setup.isClearing,
-                  "needs-enter-animation": !$setup.animatedMarkers.has(annotation.id),
-                  "animated-markers-size": $setup.animatedMarkers.size,
-                  "is-fixed": false,
-                  "renumber-from": $setup.renumberFrom,
-                  "is-dark-mode": $setup.isDarkMode,
-                  "tooltip-exiting-id": $setup.tooltipExitingId,
-                  onMouseenter: ($event) => !$setup.markersExiting && annotation.id !== $setup.recentlyAddedId && $setup.handleMarkerHover(annotation),
-                  onMouseleave: _cache[13] || (_cache[13] = ($event) => $setup.handleMarkerHover(null)),
-                  onClick: ($event) => !$setup.markersExiting && ($setup.settings.markerClickBehavior === "delete" ? $setup.deleteAnnotation(annotation.id) : $setup.startEditAnnotation(annotation)),
-                  onContextmenu: (e) => {
-                    if ($setup.settings.markerClickBehavior === "delete") {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (!$setup.markersExiting) $setup.startEditAnnotation(annotation);
-                    }
-                  }
-                }, null, 8, ["annotation", "global-index", "index", "total-visible", "is-hovered", "is-deleting", "is-editing", "marker-color", "marker-click-behavior", "markers-exiting", "is-clearing", "needs-enter-animation", "animated-markers-size", "renumber-from", "is-dark-mode", "tooltip-exiting-id", "onMouseenter", "onClick", "onContextmenu"]);
-              }),
-              128
-              /* KEYED_FRAGMENT */
-            )),
-            _createCommentVNode11(" Exiting markers (normal) "),
-            !$setup.markersExiting ? (_openBlock41(true), _createElementBlock41(
-              _Fragment5,
-              { key: 0 },
-              _renderList3($setup.exitingAnnotationsList.filter((a) => !a.isFixed), (annotation) => {
-                return _openBlock41(), _createElementBlock41(
-                  "div",
-                  {
-                    key: "exit-" + annotation.id,
-                    class: _normalizeClass4([$setup.styles.marker, $setup.styles.hovered, annotation.isMultiSelect ? $setup.styles.multiSelect : "", $setup.styles.exit]),
-                    "data-annotation-marker": "",
-                    style: _normalizeStyle12({ left: `${annotation.x}%`, top: annotation.y + "px" })
-                  },
-                  [
-                    _createVNode2($setup["IconXmark"], {
-                      size: annotation.isMultiSelect ? 12 : 10
-                    }, null, 8, ["size"])
-                  ],
-                  6
-                  /* CLASS, STYLE */
-                );
-              }),
-              128
-              /* KEYED_FRAGMENT */
-            )) : _createCommentVNode11("v-if", true)
-          ],
-          64
-          /* STABLE_FRAGMENT */
-        )) : _createCommentVNode11("v-if", true)
-      ],
-      2
-      /* CLASS */
-    ),
-    _createCommentVNode11(" Fixed markers layer "),
-    _createElementVNode41(
-      "div",
-      {
-        class: _normalizeClass4($setup.styles.fixedMarkersLayer),
-        "data-feedback-toolbar": ""
-      },
-      [
-        $setup.markersVisible ? (_openBlock41(), _createElementBlock41(
-          _Fragment5,
-          { key: 0 },
-          [
-            (_openBlock41(true), _createElementBlock41(
-              _Fragment5,
-              null,
-              _renderList3($setup.visibleAnnotations.filter((a) => a.isFixed), (annotation, index) => {
-                return _openBlock41(), _createBlock4($setup["AnnotationMarker"], {
-                  key: annotation.id,
-                  annotation,
-                  "global-index": $setup.annotations.findIndex((a) => a.id === annotation.id),
-                  index,
-                  "total-visible": $setup.visibleAnnotations.filter((a) => a.isFixed).length,
-                  "is-hovered": !$setup.markersExiting && $setup.hoveredMarkerId === annotation.id,
-                  "is-deleting": $setup.deletingMarkerId === annotation.id,
-                  "is-editing": !!$setup.editingAnnotation,
-                  "marker-color": annotation.isMultiSelect ? "#34C759" : $setup.settings.annotationColor,
-                  "marker-click-behavior": $setup.settings.markerClickBehavior,
-                  "markers-exiting": $setup.markersExiting,
-                  "is-clearing": $setup.isClearing,
-                  "needs-enter-animation": !$setup.animatedMarkers.has(annotation.id),
-                  "animated-markers-size": $setup.animatedMarkers.size,
-                  "is-fixed": true,
-                  "renumber-from": $setup.renumberFrom,
-                  "is-dark-mode": $setup.isDarkMode,
-                  "tooltip-exiting-id": $setup.tooltipExitingId,
-                  onMouseenter: ($event) => !$setup.markersExiting && annotation.id !== $setup.recentlyAddedId && $setup.handleMarkerHover(annotation),
-                  onMouseleave: _cache[14] || (_cache[14] = ($event) => $setup.handleMarkerHover(null)),
-                  onClick: ($event) => !$setup.markersExiting && ($setup.settings.markerClickBehavior === "delete" ? $setup.deleteAnnotation(annotation.id) : $setup.startEditAnnotation(annotation)),
-                  onContextmenu: (e) => {
-                    if ($setup.settings.markerClickBehavior === "delete") {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (!$setup.markersExiting) $setup.startEditAnnotation(annotation);
-                    }
-                  }
-                }, null, 8, ["annotation", "global-index", "index", "total-visible", "is-hovered", "is-deleting", "is-editing", "marker-color", "marker-click-behavior", "markers-exiting", "is-clearing", "needs-enter-animation", "animated-markers-size", "renumber-from", "is-dark-mode", "tooltip-exiting-id", "onMouseenter", "onClick", "onContextmenu"]);
-              }),
-              128
-              /* KEYED_FRAGMENT */
-            )),
-            _createCommentVNode11(" Exiting markers (fixed) "),
-            !$setup.markersExiting ? (_openBlock41(true), _createElementBlock41(
-              _Fragment5,
-              { key: 0 },
-              _renderList3($setup.exitingAnnotationsList.filter((a) => a.isFixed), (annotation) => {
-                return _openBlock41(), _createElementBlock41(
-                  "div",
-                  {
-                    key: "exit-fixed-" + annotation.id,
-                    class: _normalizeClass4([$setup.styles.marker, $setup.styles.fixed, $setup.styles.hovered, annotation.isMultiSelect ? $setup.styles.multiSelect : "", $setup.styles.exit]),
-                    "data-annotation-marker": "",
-                    style: _normalizeStyle12({ left: `${annotation.x}%`, top: annotation.y + "px" })
-                  },
-                  [
-                    _createVNode2($setup["IconClose"], {
-                      size: annotation.isMultiSelect ? 12 : 10
-                    }, null, 8, ["size"])
-                  ],
-                  6
-                  /* CLASS, STYLE */
-                );
-              }),
-              128
-              /* KEYED_FRAGMENT */
-            )) : _createCommentVNode11("v-if", true)
-          ],
-          64
-          /* STABLE_FRAGMENT */
-        )) : _createCommentVNode11("v-if", true)
-      ],
-      2
-      /* CLASS */
-    ),
-    _createCommentVNode11(" Interactive overlay "),
-    $setup.isActive ? (_openBlock41(), _createElementBlock41(
-      "div",
-      {
-        key: 0,
-        class: _normalizeClass4($setup.styles.overlay),
-        "data-feedback-toolbar": "",
-        style: _normalizeStyle12($setup.pendingAnnotation || $setup.editingAnnotation ? { zIndex: 99999 } : void 0)
-      },
-      [
-        _createCommentVNode11(" Hover highlight "),
-        $setup.hoverInfo?.rect && !$setup.pendingAnnotation && !$setup.isScrolling && !$setup.dragSelect.isDragging.value && !$setup.isDrawMode ? (_openBlock41(), _createElementBlock41(
-          "div",
-          {
-            key: 0,
-            class: _normalizeClass4([$setup.styles.hoverHighlight, $setup.styles.enter]),
-            style: _normalizeStyle12({
-              left: $setup.hoverInfo.rect.left + "px",
-              top: $setup.hoverInfo.rect.top + "px",
-              width: $setup.hoverInfo.rect.width + "px",
-              height: $setup.hoverInfo.rect.height + "px",
-              borderColor: `${$setup.settings.annotationColor}80`,
-              backgroundColor: `${$setup.settings.annotationColor}0A`
-            })
-          },
-          null,
-          6
-          /* CLASS, STYLE */
-        )) : _createCommentVNode11("v-if", true),
-        _createCommentVNode11(" Cmd+shift+click multi-select highlights "),
-        (_openBlock41(true), _createElementBlock41(
-          _Fragment5,
-          null,
-          _renderList3($setup.multiSelect.pendingMultiSelectElements.value.filter((i) => $setup._document.contains(i.element)), (item, index) => {
-            return _openBlock41(), _createElementBlock41(
+            _createElementVNode41(
               "div",
               {
-                key: "ms-" + index,
-                class: _normalizeClass4($setup.multiSelect.pendingMultiSelectElements.value.length > 1 ? $setup.styles.multiSelectOutline : $setup.styles.singleSelectOutline),
-                style: _normalizeStyle12({
-                  position: "fixed",
-                  left: item.element.getBoundingClientRect().left + "px",
-                  top: item.element.getBoundingClientRect().top + "px",
-                  width: item.element.getBoundingClientRect().width + "px",
-                  height: item.element.getBoundingClientRect().height + "px",
-                  ...$setup.multiSelect.pendingMultiSelectElements.value.length > 1 ? {} : { borderColor: `${$setup.settings.annotationColor}99`, backgroundColor: `${$setup.settings.annotationColor}0D` }
-                })
+                class: _normalizeClass4($setup.styles.toolbar),
+                "data-feedback-toolbar": "",
+                "data-agentation-root": "",
+                style: _normalizeStyle12($setup.toolbarPosition ? { left: $setup.toolbarPosition.x + "px", top: $setup.toolbarPosition.y + "px", right: "auto", bottom: "auto" } : void 0)
+              },
+              [
+                _createElementVNode41("div", {
+                  class: _normalizeClass4([
+                    $setup.styles.toolbarContainer,
+                    $props.className,
+                    !$setup.isDarkMode ? $setup.styles.light : "",
+                    $setup.isActive ? $setup.styles.expanded : $setup.styles.collapsed,
+                    $setup.showEntranceAnimation ? $setup.styles.entrance : "",
+                    $setup.isDraggingToolbar ? $setup.styles.dragging : "",
+                    $setup.isToolbarHiding ? $setup.styles.hiding : "",
+                    !$setup.settings.webhooksEnabled && ($setup.isValidUrl($setup.settings.webhookUrl) || $setup.isValidUrl($props.webhookUrl || "")) ? $setup.styles.serverConnected : ""
+                  ]),
+                  onClick: _cache[11] || (_cache[11] = ($event) => !$setup.isActive ? $setup.getJustFinishedToolbarDrag() ? ($setup.setJustFinishedToolbarDrag(false), $event.preventDefault()) : $setup.isActive = true : void 0),
+                  onMousedown: _cache[12] || (_cache[12] = (e) => $setup.handleToolbarMouseDown(e, $setup.isActive, $setup.connectionStatus)),
+                  role: !$setup.isActive ? "button" : void 0,
+                  tabindex: !$setup.isActive ? 0 : -1,
+                  title: !$setup.isActive ? "Start feedback mode" : void 0,
+                  style: _normalizeStyle12($setup.isDraggingToolbar ? { transform: `scale(1.05) rotate(${$setup.dragRotation}deg)`, cursor: "grabbing" } : void 0)
+                }, [
+                  _createCommentVNode11(" Toggle content (collapsed) "),
+                  _createElementVNode41(
+                    "div",
+                    {
+                      class: _normalizeClass4([$setup.styles.toggleContent, !$setup.isActive ? $setup.styles.visible : $setup.styles.hidden])
+                    },
+                    [
+                      _createVNode2($setup["IconListSparkle"], { size: 24 }),
+                      $setup.hasAnnotations ? (_openBlock41(), _createElementBlock41(
+                        "span",
+                        {
+                          key: 0,
+                          class: _normalizeClass4([$setup.styles.badge, $setup.isActive ? $setup.styles.fadeOut : "", $setup.showEntranceAnimation ? $setup.styles.entrance : ""]),
+                          style: _normalizeStyle12({ backgroundColor: $setup.settings.annotationColor })
+                        },
+                        _toDisplayString5($setup.annotations.length),
+                        7
+                        /* TEXT, CLASS, STYLE */
+                      )) : _createCommentVNode11("v-if", true)
+                    ],
+                    2
+                    /* CLASS */
+                  ),
+                  _createCommentVNode11(" Controls content (expanded) "),
+                  _createElementVNode41(
+                    "div",
+                    {
+                      class: _normalizeClass4([
+                        $setup.styles.controlsContent,
+                        $setup.isActive ? $setup.styles.visible : $setup.styles.hidden,
+                        $setup.toolbarPosition && $setup.toolbarPosition.y < 100 ? $setup.styles.tooltipBelow : "",
+                        $setup.tooltipsHidden || $setup.showSettings ? $setup.styles.tooltipsHidden : "",
+                        $setup.tooltipSessionActive ? $setup.styles.tooltipsInSession : ""
+                      ]),
+                      onMouseenter: $setup.handleControlsMouseEnter,
+                      onMouseleave: $setup.handleControlsMouseLeave
+                    },
+                    [
+                      _createElementVNode41(
+                        "div",
+                        {
+                          class: _normalizeClass4([$setup.styles.buttonWrapper, $setup.toolbarPosition && $setup.toolbarPosition.x < 120 ? $setup.styles.buttonWrapperAlignLeft : ""])
+                        },
+                        [
+                          _createElementVNode41("button", {
+                            class: _normalizeClass4([$setup.styles.controlButton, !$setup.isDarkMode ? $setup.styles.light : ""]),
+                            "data-active": $setup.isFrozen,
+                            onClick: _cache[0] || (_cache[0] = _withModifiers4(($event) => {
+                              $setup.hideTooltipsUntilMouseLeave();
+                              $setup.toggleFreeze();
+                            }, ["stop"]))
+                          }, [
+                            _createVNode2($setup["IconPausePlayAnimated"], {
+                              size: 24,
+                              "is-paused": $setup.isFrozen
+                            }, null, 8, ["is-paused"])
+                          ], 10, _hoisted_33),
+                          _createElementVNode41(
+                            "span",
+                            {
+                              class: _normalizeClass4($setup.styles.buttonTooltip)
+                            },
+                            [
+                              _createTextVNode4(
+                                _toDisplayString5($setup.isFrozen ? "Resume animations" : "Pause animations") + " ",
+                                1
+                                /* TEXT */
+                              ),
+                              _createElementVNode41(
+                                "span",
+                                {
+                                  class: _normalizeClass4($setup.styles.shortcut)
+                                },
+                                "P",
+                                2
+                                /* CLASS */
+                              )
+                            ],
+                            2
+                            /* CLASS */
+                          )
+                        ],
+                        2
+                        /* CLASS */
+                      ),
+                      _createElementVNode41(
+                        "div",
+                        {
+                          class: _normalizeClass4($setup.styles.buttonWrapper)
+                        },
+                        [
+                          _createElementVNode41("button", {
+                            class: _normalizeClass4([$setup.styles.controlButton, !$setup.isDarkMode ? $setup.styles.light : ""]),
+                            "data-active": $setup.isDrawMode,
+                            onClick: _cache[1] || (_cache[1] = _withModifiers4(($event) => {
+                              $setup.hideTooltipsUntilMouseLeave();
+                              $setup.isDrawMode = !$setup.isDrawMode;
+                            }, ["stop"]))
+                          }, [
+                            _createVNode2($setup["IconPencil"], { size: 24 })
+                          ], 10, _hoisted_43),
+                          _createElementVNode41(
+                            "span",
+                            {
+                              class: _normalizeClass4($setup.styles.buttonTooltip)
+                            },
+                            [
+                              _createTextVNode4(
+                                _toDisplayString5($setup.isDrawMode ? "Exit draw mode" : "Draw mode") + " ",
+                                1
+                                /* TEXT */
+                              ),
+                              _createElementVNode41(
+                                "span",
+                                {
+                                  class: _normalizeClass4($setup.styles.shortcut)
+                                },
+                                "D",
+                                2
+                                /* CLASS */
+                              )
+                            ],
+                            2
+                            /* CLASS */
+                          )
+                        ],
+                        2
+                        /* CLASS */
+                      ),
+                      _createElementVNode41(
+                        "div",
+                        {
+                          class: _normalizeClass4($setup.styles.buttonWrapper)
+                        },
+                        [
+                          _createElementVNode41("button", {
+                            class: _normalizeClass4([$setup.styles.controlButton, !$setup.isDarkMode ? $setup.styles.light : ""]),
+                            disabled: !$setup.hasAnnotations,
+                            onClick: _cache[2] || (_cache[2] = _withModifiers4(($event) => {
+                              $setup.hideTooltipsUntilMouseLeave();
+                              $setup.showMarkers = !$setup.showMarkers;
+                              if ($setup.isDrawMode) $setup.isDrawMode = false;
+                            }, ["stop"]))
+                          }, [
+                            _createVNode2($setup["IconEyeAnimated"], {
+                              size: 24,
+                              "is-open": $setup.showMarkers
+                            }, null, 8, ["is-open"])
+                          ], 10, _hoisted_53),
+                          _createElementVNode41(
+                            "span",
+                            {
+                              class: _normalizeClass4($setup.styles.buttonTooltip)
+                            },
+                            [
+                              _createTextVNode4(
+                                _toDisplayString5($setup.showMarkers ? "Hide markers" : "Show markers") + " ",
+                                1
+                                /* TEXT */
+                              ),
+                              _createElementVNode41(
+                                "span",
+                                {
+                                  class: _normalizeClass4($setup.styles.shortcut)
+                                },
+                                "H",
+                                2
+                                /* CLASS */
+                              )
+                            ],
+                            2
+                            /* CLASS */
+                          )
+                        ],
+                        2
+                        /* CLASS */
+                      ),
+                      _createElementVNode41(
+                        "div",
+                        {
+                          class: _normalizeClass4($setup.styles.buttonWrapper)
+                        },
+                        [
+                          _createElementVNode41("button", {
+                            class: _normalizeClass4([$setup.styles.controlButton, !$setup.isDarkMode ? $setup.styles.light : "", $setup.copied ? $setup.styles.statusShowing : ""]),
+                            disabled: !$setup.hasAnnotations && $setup.drawStrokes.length === 0,
+                            "data-active": $setup.copied,
+                            onClick: _cache[3] || (_cache[3] = _withModifiers4(($event) => {
+                              $setup.hideTooltipsUntilMouseLeave();
+                              $setup.copyOutput();
+                            }, ["stop"]))
+                          }, [
+                            _createVNode2($setup["IconCopyAnimated"], {
+                              size: 24,
+                              copied: $setup.copied
+                            }, null, 8, ["copied"])
+                          ], 10, _hoisted_63),
+                          _createElementVNode41(
+                            "span",
+                            {
+                              class: _normalizeClass4($setup.styles.buttonTooltip)
+                            },
+                            [
+                              _cache[15] || (_cache[15] = _createTextVNode4(
+                                " Copy feedback ",
+                                -1
+                                /* CACHED */
+                              )),
+                              _createElementVNode41(
+                                "span",
+                                {
+                                  class: _normalizeClass4($setup.styles.shortcut)
+                                },
+                                "C",
+                                2
+                                /* CLASS */
+                              )
+                            ],
+                            2
+                            /* CLASS */
+                          )
+                        ],
+                        2
+                        /* CLASS */
+                      ),
+                      _createCommentVNode11(" Send button "),
+                      _createElementVNode41(
+                        "div",
+                        {
+                          class: _normalizeClass4([$setup.styles.buttonWrapper, $setup.styles.sendButtonWrapper, $setup.isActive && !$setup.settings.webhooksEnabled && ($setup.isValidUrl($setup.settings.webhookUrl) || $setup.isValidUrl($props.webhookUrl || "")) ? $setup.styles.sendButtonVisible : ""])
+                        },
+                        [
+                          _createElementVNode41("button", {
+                            class: _normalizeClass4([$setup.styles.controlButton, !$setup.isDarkMode ? $setup.styles.light : "", $setup.sendState === "sent" || $setup.sendState === "failed" ? $setup.styles.statusShowing : ""]),
+                            disabled: !$setup.hasAnnotations || !$setup.isValidUrl($setup.settings.webhookUrl) && !$setup.isValidUrl($props.webhookUrl || "") || $setup.sendState === "sending",
+                            "data-no-hover": $setup.sendState === "sent" || $setup.sendState === "failed",
+                            tabindex: $setup.isValidUrl($setup.settings.webhookUrl) || $setup.isValidUrl($props.webhookUrl || "") ? 0 : -1,
+                            onClick: _cache[4] || (_cache[4] = _withModifiers4(($event) => {
+                              $setup.hideTooltipsUntilMouseLeave();
+                              $setup.sendToWebhook();
+                            }, ["stop"]))
+                          }, [
+                            _createVNode2($setup["IconSendArrow"], {
+                              size: 24,
+                              state: $setup.sendState
+                            }, null, 8, ["state"]),
+                            $setup.hasAnnotations && $setup.sendState === "idle" ? (_openBlock41(), _createElementBlock41(
+                              "span",
+                              {
+                                key: 0,
+                                class: _normalizeClass4([$setup.styles.buttonBadge, !$setup.isDarkMode ? $setup.styles.light : ""]),
+                                style: _normalizeStyle12({ backgroundColor: $setup.settings.annotationColor })
+                              },
+                              _toDisplayString5($setup.annotations.length),
+                              7
+                              /* TEXT, CLASS, STYLE */
+                            )) : _createCommentVNode11("v-if", true)
+                          ], 10, _hoisted_73),
+                          _createElementVNode41(
+                            "span",
+                            {
+                              class: _normalizeClass4($setup.styles.buttonTooltip)
+                            },
+                            [
+                              _cache[16] || (_cache[16] = _createTextVNode4(
+                                " Send Annotations ",
+                                -1
+                                /* CACHED */
+                              )),
+                              _createElementVNode41(
+                                "span",
+                                {
+                                  class: _normalizeClass4($setup.styles.shortcut)
+                                },
+                                "S",
+                                2
+                                /* CLASS */
+                              )
+                            ],
+                            2
+                            /* CLASS */
+                          )
+                        ],
+                        2
+                        /* CLASS */
+                      ),
+                      _createElementVNode41(
+                        "div",
+                        {
+                          class: _normalizeClass4($setup.styles.buttonWrapper)
+                        },
+                        [
+                          _createElementVNode41("button", {
+                            class: _normalizeClass4([$setup.styles.controlButton, !$setup.isDarkMode ? $setup.styles.light : ""]),
+                            disabled: !$setup.hasAnnotations && $setup.drawStrokes.length === 0,
+                            "data-danger": "",
+                            onClick: _cache[5] || (_cache[5] = _withModifiers4(($event) => {
+                              $setup.hideTooltipsUntilMouseLeave();
+                              $setup.clearAll();
+                            }, ["stop"]))
+                          }, [
+                            _createVNode2($setup["IconTrashAlt"], { size: 24 })
+                          ], 10, _hoisted_82),
+                          _createElementVNode41(
+                            "span",
+                            {
+                              class: _normalizeClass4($setup.styles.buttonTooltip)
+                            },
+                            [
+                              _cache[17] || (_cache[17] = _createTextVNode4(
+                                " Clear all ",
+                                -1
+                                /* CACHED */
+                              )),
+                              _createElementVNode41(
+                                "span",
+                                {
+                                  class: _normalizeClass4($setup.styles.shortcut)
+                                },
+                                "X",
+                                2
+                                /* CLASS */
+                              )
+                            ],
+                            2
+                            /* CLASS */
+                          )
+                        ],
+                        2
+                        /* CLASS */
+                      ),
+                      _createElementVNode41(
+                        "div",
+                        {
+                          class: _normalizeClass4($setup.styles.buttonWrapper)
+                        },
+                        [
+                          _createElementVNode41(
+                            "button",
+                            {
+                              class: _normalizeClass4([$setup.styles.controlButton, !$setup.isDarkMode ? $setup.styles.light : ""]),
+                              onClick: _cache[6] || (_cache[6] = _withModifiers4(($event) => {
+                                $setup.hideTooltipsUntilMouseLeave();
+                                $setup.showSettings = !$setup.showSettings;
+                              }, ["stop"]))
+                            },
+                            [
+                              _createVNode2($setup["IconGear"], { size: 24 })
+                            ],
+                            2
+                            /* CLASS */
+                          ),
+                          $props.endpoint && $setup.connectionStatus !== "disconnected" ? (_openBlock41(), _createElementBlock41("span", {
+                            key: 0,
+                            class: _normalizeClass4([$setup.styles.mcpIndicator, !$setup.isDarkMode ? $setup.styles.light : "", $setup.styles[$setup.connectionStatus], $setup.showSettings ? $setup.styles.hidden : ""]),
+                            title: $setup.connectionStatus === "connected" ? "MCP Connected" : "MCP Connecting..."
+                          }, null, 10, _hoisted_92)) : _createCommentVNode11("v-if", true),
+                          _createElementVNode41(
+                            "span",
+                            {
+                              class: _normalizeClass4($setup.styles.buttonTooltip)
+                            },
+                            "Settings",
+                            2
+                            /* CLASS */
+                          )
+                        ],
+                        2
+                        /* CLASS */
+                      ),
+                      _createElementVNode41(
+                        "div",
+                        {
+                          class: _normalizeClass4([$setup.styles.divider, !$setup.isDarkMode ? $setup.styles.light : ""])
+                        },
+                        null,
+                        2
+                        /* CLASS */
+                      ),
+                      _createElementVNode41(
+                        "div",
+                        {
+                          class: _normalizeClass4([$setup.styles.buttonWrapper, $setup.toolbarPosition && $setup.toolbarPosition.x > $setup._window.innerWidth - 120 ? $setup.styles.buttonWrapperAlignRight : ""])
+                        },
+                        [
+                          _createElementVNode41(
+                            "button",
+                            {
+                              class: _normalizeClass4([$setup.styles.controlButton, !$setup.isDarkMode ? $setup.styles.light : ""]),
+                              onClick: _cache[7] || (_cache[7] = _withModifiers4(($event) => {
+                                $setup.hideTooltipsUntilMouseLeave();
+                                $setup.isActive = false;
+                              }, ["stop"]))
+                            },
+                            [
+                              _createVNode2($setup["IconXmarkLarge"], { size: 24 })
+                            ],
+                            2
+                            /* CLASS */
+                          ),
+                          _createElementVNode41(
+                            "span",
+                            {
+                              class: _normalizeClass4($setup.styles.buttonTooltip)
+                            },
+                            [
+                              _cache[18] || (_cache[18] = _createTextVNode4(
+                                " Exit ",
+                                -1
+                                /* CACHED */
+                              )),
+                              _createElementVNode41(
+                                "span",
+                                {
+                                  class: _normalizeClass4($setup.styles.shortcut)
+                                },
+                                "Esc",
+                                2
+                                /* CLASS */
+                              )
+                            ],
+                            2
+                            /* CLASS */
+                          )
+                        ],
+                        2
+                        /* CLASS */
+                      )
+                    ],
+                    34
+                    /* CLASS, NEED_HYDRATION */
+                  ),
+                  _createCommentVNode11(" Settings Panel "),
+                  _createVNode2($setup["ToolbarSettingsPanel"], {
+                    settings: $setup.settings,
+                    "is-dark-mode": $setup.isDarkMode,
+                    "show-settings-visible": $setup.showSettingsVisible,
+                    "toolbar-position": $setup.toolbarPosition,
+                    "is-localhost": $setup.isLocalhost,
+                    endpoint: $props.endpoint,
+                    "connection-status": $setup.connectionStatus,
+                    "is-transitioning": $setup.isTransitioning,
+                    "settings-page": $setup.settingsPage,
+                    "onUpdate:isDarkMode": _cache[8] || (_cache[8] = ($event) => $setup.isDarkMode = $event),
+                    "onUpdate:settings": _cache[9] || (_cache[9] = ($event) => Object.assign($setup.settings, $event)),
+                    "onUpdate:settingsPage": _cache[10] || (_cache[10] = ($event) => $setup.settingsPage = $event),
+                    onHideToolbar: $setup.hideToolbarTemporarily
+                  }, null, 8, ["settings", "is-dark-mode", "show-settings-visible", "toolbar-position", "is-localhost", "endpoint", "connection-status", "is-transitioning", "settings-page"])
+                ], 46, _hoisted_24)
+              ],
+              6
+              /* CLASS, STYLE */
+            ),
+            _createCommentVNode11(" Draw canvas "),
+            _createElementVNode41(
+              "canvas",
+              {
+                ref: "drawCanvasRef",
+                class: _normalizeClass4([$setup.styles.drawCanvas, $setup.isDrawMode ? $setup.styles.active : ""]),
+                style: _normalizeStyle12({ opacity: $setup.shouldShowMarkers ? 1 : 0, transition: "opacity 0.15s ease" }),
+                "data-feedback-toolbar": ""
               },
               null,
               6
               /* CLASS, STYLE */
-            );
-          }),
-          128
-          /* KEYED_FRAGMENT */
-        )),
-        _createCommentVNode11(" Hover tooltip "),
-        $setup.hoverInfo && !$setup.pendingAnnotation && !$setup.isScrolling && !$setup.dragSelect.isDragging.value && !$setup.isDrawMode ? (_openBlock41(), _createElementBlock41(
-          "div",
-          {
-            key: 1,
-            class: _normalizeClass4([$setup.styles.hoverTooltip, $setup.styles.enter]),
-            style: _normalizeStyle12({
-              left: Math.max(8, Math.min($setup.hoverPosition.x, $setup._window.innerWidth - 100)) + "px",
-              top: Math.max($setup.hoverPosition.y - ($setup.hoverInfo.reactComponents ? 48 : 32), 8) + "px"
-            })
-          },
-          [
-            $setup.hoverInfo.reactComponents ? (_openBlock41(), _createElementBlock41(
+            ),
+            _createCommentVNode11(" Markers layer (normal scrolling) "),
+            _createElementVNode41(
+              "div",
+              {
+                class: _normalizeClass4($setup.styles.markersLayer),
+                "data-feedback-toolbar": ""
+              },
+              [
+                $setup.markersVisible ? (_openBlock41(), _createElementBlock41(
+                  _Fragment5,
+                  { key: 0 },
+                  [
+                    (_openBlock41(true), _createElementBlock41(
+                      _Fragment5,
+                      null,
+                      _renderList3($setup.visibleAnnotations.filter((a) => !a.isFixed), (annotation, index) => {
+                        return _openBlock41(), _createBlock4($setup["AnnotationMarker"], {
+                          key: annotation.id,
+                          annotation,
+                          "global-index": $setup.annotations.findIndex((a) => a.id === annotation.id),
+                          index,
+                          "total-visible": $setup.visibleAnnotations.filter((a) => !a.isFixed).length,
+                          "is-hovered": !$setup.markersExiting && $setup.hoveredMarkerId === annotation.id,
+                          "is-deleting": $setup.deletingMarkerId === annotation.id,
+                          "is-editing": !!$setup.editingAnnotation,
+                          "marker-color": annotation.isMultiSelect ? "#34C759" : $setup.settings.annotationColor,
+                          "marker-click-behavior": $setup.settings.markerClickBehavior,
+                          "markers-exiting": $setup.markersExiting,
+                          "is-clearing": $setup.isClearing,
+                          "needs-enter-animation": !$setup.animatedMarkers.has(annotation.id),
+                          "is-fixed": false,
+                          "renumber-from": $setup.renumberFrom,
+                          "is-dark-mode": $setup.isDarkMode,
+                          onMouseenter: ($event) => !$setup.markersExiting && annotation.id !== $setup.recentlyAddedId && $setup.handleMarkerHover(annotation),
+                          onMouseleave: _cache[13] || (_cache[13] = ($event) => $setup.handleMarkerHover(null)),
+                          onClick: ($event) => !$setup.markersExiting && ($setup.settings.markerClickBehavior === "delete" ? $setup.deleteAnnotation(annotation.id) : $setup.startEditAnnotation(annotation)),
+                          onContextmenu: (e) => {
+                            if ($setup.settings.markerClickBehavior === "delete") {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (!$setup.markersExiting) $setup.startEditAnnotation(annotation);
+                            }
+                          }
+                        }, null, 8, ["annotation", "global-index", "index", "total-visible", "is-hovered", "is-deleting", "is-editing", "marker-color", "marker-click-behavior", "markers-exiting", "is-clearing", "needs-enter-animation", "renumber-from", "is-dark-mode", "onMouseenter", "onClick", "onContextmenu"]);
+                      }),
+                      128
+                      /* KEYED_FRAGMENT */
+                    )),
+                    _createCommentVNode11(" Exiting markers (normal) "),
+                    !$setup.markersExiting ? (_openBlock41(true), _createElementBlock41(
+                      _Fragment5,
+                      { key: 0 },
+                      _renderList3($setup.exitingAnnotationsList.filter((a) => !a.isFixed), (annotation) => {
+                        return _openBlock41(), _createElementBlock41(
+                          "div",
+                          {
+                            key: "exit-" + annotation.id,
+                            class: _normalizeClass4([$setup.styles.marker, $setup.styles.hovered, annotation.isMultiSelect ? $setup.styles.multiSelect : "", $setup.styles.exit]),
+                            "data-annotation-marker": "",
+                            style: _normalizeStyle12({ left: `${annotation.x}%`, top: annotation.y + "px" })
+                          },
+                          [
+                            _createVNode2($setup["IconXmark"], {
+                              size: annotation.isMultiSelect ? 12 : 10
+                            }, null, 8, ["size"])
+                          ],
+                          6
+                          /* CLASS, STYLE */
+                        );
+                      }),
+                      128
+                      /* KEYED_FRAGMENT */
+                    )) : _createCommentVNode11("v-if", true)
+                  ],
+                  64
+                  /* STABLE_FRAGMENT */
+                )) : _createCommentVNode11("v-if", true)
+              ],
+              2
+              /* CLASS */
+            ),
+            _createCommentVNode11(" Fixed markers layer "),
+            _createElementVNode41(
+              "div",
+              {
+                class: _normalizeClass4($setup.styles.fixedMarkersLayer),
+                "data-feedback-toolbar": ""
+              },
+              [
+                $setup.markersVisible ? (_openBlock41(), _createElementBlock41(
+                  _Fragment5,
+                  { key: 0 },
+                  [
+                    (_openBlock41(true), _createElementBlock41(
+                      _Fragment5,
+                      null,
+                      _renderList3($setup.visibleAnnotations.filter((a) => a.isFixed), (annotation, index) => {
+                        return _openBlock41(), _createBlock4($setup["AnnotationMarker"], {
+                          key: annotation.id,
+                          annotation,
+                          "global-index": $setup.annotations.findIndex((a) => a.id === annotation.id),
+                          index,
+                          "total-visible": $setup.visibleAnnotations.filter((a) => a.isFixed).length,
+                          "is-hovered": !$setup.markersExiting && $setup.hoveredMarkerId === annotation.id,
+                          "is-deleting": $setup.deletingMarkerId === annotation.id,
+                          "is-editing": !!$setup.editingAnnotation,
+                          "marker-color": annotation.isMultiSelect ? "#34C759" : $setup.settings.annotationColor,
+                          "marker-click-behavior": $setup.settings.markerClickBehavior,
+                          "markers-exiting": $setup.markersExiting,
+                          "is-clearing": $setup.isClearing,
+                          "needs-enter-animation": !$setup.animatedMarkers.has(annotation.id),
+                          "is-fixed": true,
+                          "renumber-from": $setup.renumberFrom,
+                          "is-dark-mode": $setup.isDarkMode,
+                          onMouseenter: ($event) => !$setup.markersExiting && annotation.id !== $setup.recentlyAddedId && $setup.handleMarkerHover(annotation),
+                          onMouseleave: _cache[14] || (_cache[14] = ($event) => $setup.handleMarkerHover(null)),
+                          onClick: ($event) => !$setup.markersExiting && ($setup.settings.markerClickBehavior === "delete" ? $setup.deleteAnnotation(annotation.id) : $setup.startEditAnnotation(annotation)),
+                          onContextmenu: (e) => {
+                            if ($setup.settings.markerClickBehavior === "delete") {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (!$setup.markersExiting) $setup.startEditAnnotation(annotation);
+                            }
+                          }
+                        }, null, 8, ["annotation", "global-index", "index", "total-visible", "is-hovered", "is-deleting", "is-editing", "marker-color", "marker-click-behavior", "markers-exiting", "is-clearing", "needs-enter-animation", "renumber-from", "is-dark-mode", "onMouseenter", "onClick", "onContextmenu"]);
+                      }),
+                      128
+                      /* KEYED_FRAGMENT */
+                    )),
+                    _createCommentVNode11(" Exiting markers (fixed) "),
+                    !$setup.markersExiting ? (_openBlock41(true), _createElementBlock41(
+                      _Fragment5,
+                      { key: 0 },
+                      _renderList3($setup.exitingAnnotationsList.filter((a) => a.isFixed), (annotation) => {
+                        return _openBlock41(), _createElementBlock41(
+                          "div",
+                          {
+                            key: "exit-fixed-" + annotation.id,
+                            class: _normalizeClass4([$setup.styles.marker, $setup.styles.fixed, $setup.styles.hovered, annotation.isMultiSelect ? $setup.styles.multiSelect : "", $setup.styles.exit]),
+                            "data-annotation-marker": "",
+                            style: _normalizeStyle12({ left: `${annotation.x}%`, top: annotation.y + "px" })
+                          },
+                          [
+                            _createVNode2($setup["IconClose"], {
+                              size: annotation.isMultiSelect ? 12 : 10
+                            }, null, 8, ["size"])
+                          ],
+                          6
+                          /* CLASS, STYLE */
+                        );
+                      }),
+                      128
+                      /* KEYED_FRAGMENT */
+                    )) : _createCommentVNode11("v-if", true)
+                  ],
+                  64
+                  /* STABLE_FRAGMENT */
+                )) : _createCommentVNode11("v-if", true)
+              ],
+              2
+              /* CLASS */
+            ),
+            _createCommentVNode11(" Interactive overlay "),
+            $setup.isActive ? (_openBlock41(), _createElementBlock41(
               "div",
               {
                 key: 0,
-                class: _normalizeClass4($setup.styles.hoverReactPath)
+                class: _normalizeClass4($setup.styles.overlay),
+                "data-feedback-toolbar": "",
+                style: _normalizeStyle12($setup.pendingAnnotation || $setup.editingAnnotation ? { zIndex: 99999 } : void 0)
               },
-              _toDisplayString5($setup.hoverInfo.reactComponents),
-              3
-              /* TEXT, CLASS */
-            )) : _createCommentVNode11("v-if", true),
-            _createElementVNode41(
-              "div",
-              {
-                class: _normalizeClass4($setup.styles.hoverElementName)
-              },
-              _toDisplayString5($setup.hoverInfo.elementName),
-              3
-              /* TEXT, CLASS */
-            )
-          ],
-          6
-          /* CLASS, STYLE */
-        )) : _createCommentVNode11("v-if", true),
-        _createCommentVNode11(" Pending annotation marker + popup "),
-        $setup.pendingAnnotation ? (_openBlock41(), _createElementBlock41(
-          _Fragment5,
-          { key: 2 },
-          [
-            _createCommentVNode11(" Pending outline "),
-            $setup.pendingAnnotation.drawingIndex == null ? (_openBlock41(), _createElementBlock41(
-              _Fragment5,
-              { key: 0 },
               [
-                $setup.pendingAnnotation.targetElement && $setup._document.contains($setup.pendingAnnotation.targetElement) ? (_openBlock41(), _createElementBlock41(
+                _createCommentVNode11(" Hover highlight "),
+                $setup.hoverInfo?.rect && !$setup.pendingAnnotation && !$setup.isScrolling && !$setup.dragSelect.isDragging.value && !$setup.isDrawMode ? (_openBlock41(), _createElementBlock41(
                   "div",
                   {
                     key: 0,
-                    class: _normalizeClass4([$setup.styles.singleSelectOutline, $setup.pendingExiting ? $setup.styles.exit : $setup.styles.enter]),
+                    class: _normalizeClass4([$setup.styles.hoverHighlight, $setup.styles.enter]),
                     style: _normalizeStyle12({
-                      left: $setup.pendingAnnotation.targetElement.getBoundingClientRect().left + "px",
-                      top: $setup.pendingAnnotation.targetElement.getBoundingClientRect().top + "px",
-                      width: $setup.pendingAnnotation.targetElement.getBoundingClientRect().width + "px",
-                      height: $setup.pendingAnnotation.targetElement.getBoundingClientRect().height + "px",
-                      borderColor: `${$setup.settings.annotationColor}99`,
-                      backgroundColor: `${$setup.settings.annotationColor}0D`
+                      left: $setup.hoverInfo.rect.left + "px",
+                      top: $setup.hoverInfo.rect.top + "px",
+                      width: $setup.hoverInfo.rect.width + "px",
+                      height: $setup.hoverInfo.rect.height + "px",
+                      borderColor: `${$setup.settings.annotationColor}80`,
+                      backgroundColor: `${$setup.settings.annotationColor}0A`
                     })
                   },
                   null,
                   6
                   /* CLASS, STYLE */
-                )) : $setup.pendingAnnotation.boundingBox ? (_openBlock41(), _createElementBlock41(
+                )) : _createCommentVNode11("v-if", true),
+                _createCommentVNode11(" Cmd+shift+click multi-select highlights "),
+                (_openBlock41(true), _createElementBlock41(
+                  _Fragment5,
+                  null,
+                  _renderList3($setup.multiSelect.pendingMultiSelectElements.value.filter((i) => $setup._document.contains(i.element)), (item, index) => {
+                    return _openBlock41(), _createElementBlock41(
+                      "div",
+                      {
+                        key: "ms-" + index,
+                        class: _normalizeClass4($setup.multiSelect.pendingMultiSelectElements.value.length > 1 ? $setup.styles.multiSelectOutline : $setup.styles.singleSelectOutline),
+                        style: _normalizeStyle12({
+                          position: "fixed",
+                          left: item.element.getBoundingClientRect().left + "px",
+                          top: item.element.getBoundingClientRect().top + "px",
+                          width: item.element.getBoundingClientRect().width + "px",
+                          height: item.element.getBoundingClientRect().height + "px",
+                          ...$setup.multiSelect.pendingMultiSelectElements.value.length > 1 ? {} : { borderColor: `${$setup.settings.annotationColor}99`, backgroundColor: `${$setup.settings.annotationColor}0D` }
+                        })
+                      },
+                      null,
+                      6
+                      /* CLASS, STYLE */
+                    );
+                  }),
+                  128
+                  /* KEYED_FRAGMENT */
+                )),
+                _createCommentVNode11(" Hover tooltip "),
+                $setup.hoverInfo && !$setup.pendingAnnotation && !$setup.isScrolling && !$setup.dragSelect.isDragging.value && !$setup.isDrawMode ? (_openBlock41(), _createElementBlock41(
                   "div",
                   {
                     key: 1,
-                    class: _normalizeClass4([$setup.pendingAnnotation.isMultiSelect ? $setup.styles.multiSelectOutline : $setup.styles.singleSelectOutline, $setup.pendingExiting ? $setup.styles.exit : $setup.styles.enter]),
+                    class: _normalizeClass4([$setup.styles.hoverTooltip, $setup.styles.enter]),
                     style: _normalizeStyle12({
-                      left: $setup.pendingAnnotation.boundingBox.x + "px",
-                      top: $setup.pendingAnnotation.boundingBox.y - $setup.scrollY + "px",
-                      width: $setup.pendingAnnotation.boundingBox.width + "px",
-                      height: $setup.pendingAnnotation.boundingBox.height + "px",
-                      ...$setup.pendingAnnotation.isMultiSelect ? {} : { borderColor: `${$setup.settings.annotationColor}99`, backgroundColor: `${$setup.settings.annotationColor}0D` }
+                      left: Math.max(8, Math.min($setup.hoverPosition.x, $setup._window.innerWidth - 100)) + "px",
+                      top: Math.max($setup.hoverPosition.y - ($setup.hoverInfo.reactComponents ? 48 : 32), 8) + "px"
                     })
                   },
-                  null,
+                  [
+                    $setup.hoverInfo.reactComponents ? (_openBlock41(), _createElementBlock41(
+                      "div",
+                      {
+                        key: 0,
+                        class: _normalizeClass4($setup.styles.hoverReactPath)
+                      },
+                      _toDisplayString5($setup.hoverInfo.reactComponents),
+                      3
+                      /* TEXT, CLASS */
+                    )) : _createCommentVNode11("v-if", true),
+                    _createElementVNode41(
+                      "div",
+                      {
+                        class: _normalizeClass4($setup.styles.hoverElementName)
+                      },
+                      _toDisplayString5($setup.hoverInfo.elementName),
+                      3
+                      /* TEXT, CLASS */
+                    )
+                  ],
                   6
                   /* CLASS, STYLE */
+                )) : _createCommentVNode11("v-if", true),
+                _createCommentVNode11(" Pending annotation marker + popup "),
+                $setup.pendingAnnotation ? (_openBlock41(), _createElementBlock41(
+                  _Fragment5,
+                  { key: 2 },
+                  [
+                    _createCommentVNode11(" Pending outline "),
+                    $setup.pendingAnnotation.drawingIndex == null ? (_openBlock41(), _createElementBlock41(
+                      _Fragment5,
+                      { key: 0 },
+                      [
+                        $setup.pendingAnnotation.targetElement && $setup._document.contains($setup.pendingAnnotation.targetElement) ? (_openBlock41(), _createElementBlock41(
+                          "div",
+                          {
+                            key: 0,
+                            class: _normalizeClass4([$setup.styles.singleSelectOutline, $setup.pendingExiting ? $setup.styles.exit : $setup.styles.enter]),
+                            style: _normalizeStyle12({
+                              left: $setup.pendingAnnotation.targetElement.getBoundingClientRect().left + "px",
+                              top: $setup.pendingAnnotation.targetElement.getBoundingClientRect().top + "px",
+                              width: $setup.pendingAnnotation.targetElement.getBoundingClientRect().width + "px",
+                              height: $setup.pendingAnnotation.targetElement.getBoundingClientRect().height + "px",
+                              borderColor: `${$setup.settings.annotationColor}99`,
+                              backgroundColor: `${$setup.settings.annotationColor}0D`
+                            })
+                          },
+                          null,
+                          6
+                          /* CLASS, STYLE */
+                        )) : $setup.pendingAnnotation.boundingBox ? (_openBlock41(), _createElementBlock41(
+                          "div",
+                          {
+                            key: 1,
+                            class: _normalizeClass4([$setup.pendingAnnotation.isMultiSelect ? $setup.styles.multiSelectOutline : $setup.styles.singleSelectOutline, $setup.pendingExiting ? $setup.styles.exit : $setup.styles.enter]),
+                            style: _normalizeStyle12({
+                              left: $setup.pendingAnnotation.boundingBox.x + "px",
+                              top: $setup.pendingAnnotation.boundingBox.y - $setup.scrollY + "px",
+                              width: $setup.pendingAnnotation.boundingBox.width + "px",
+                              height: $setup.pendingAnnotation.boundingBox.height + "px",
+                              ...$setup.pendingAnnotation.isMultiSelect ? {} : { borderColor: `${$setup.settings.annotationColor}99`, backgroundColor: `${$setup.settings.annotationColor}0D` }
+                            })
+                          },
+                          null,
+                          6
+                          /* CLASS, STYLE */
+                        )) : _createCommentVNode11("v-if", true)
+                      ],
+                      64
+                      /* STABLE_FRAGMENT */
+                    )) : _createCommentVNode11("v-if", true),
+                    _createCommentVNode11(" Pending marker "),
+                    _createElementVNode41(
+                      "div",
+                      {
+                        class: _normalizeClass4([$setup.styles.marker, $setup.styles.pending, $setup.pendingAnnotation.isMultiSelect ? $setup.styles.multiSelect : "", $setup.pendingExiting ? $setup.styles.exit : $setup.styles.enter]),
+                        style: _normalizeStyle12({
+                          left: `${$setup.pendingAnnotation.x}%`,
+                          top: ($setup.pendingAnnotation.isFixed ? $setup.pendingAnnotation.y : $setup.pendingAnnotation.y - $setup.scrollY) + "px",
+                          backgroundColor: $setup.pendingAnnotation.isMultiSelect ? "#34C759" : $setup.settings.annotationColor
+                        })
+                      },
+                      [
+                        _createVNode2($setup["IconPlus"], { size: 12 })
+                      ],
+                      6
+                      /* CLASS, STYLE */
+                    ),
+                    _createCommentVNode11(" Pending popup "),
+                    _createVNode2($setup["AnnotationPopup"], {
+                      ref: "popupRef",
+                      element: $setup.pendingAnnotation.element,
+                      "selected-text": $setup.pendingAnnotation.selectedText,
+                      "computed-styles": $setup.pendingAnnotation.computedStylesObj,
+                      placeholder: $setup.pendingAnnotation.element === "Area selection" ? "What should change in this area?" : $setup.pendingAnnotation.isMultiSelect ? "Feedback for this group of elements..." : "What should change?",
+                      "on-submit": $setup.addAnnotation,
+                      "on-cancel": $setup.cancelAnnotation,
+                      "is-exiting": $setup.pendingExiting,
+                      "light-mode": !$setup.isDarkMode,
+                      "accent-color": $setup.pendingAnnotation.isMultiSelect ? "#34C759" : $setup.settings.annotationColor,
+                      "popup-style": $setup.getPopupStyle($setup.pendingAnnotation.x, $setup.pendingAnnotation.isFixed ? $setup.pendingAnnotation.y : $setup.pendingAnnotation.y - $setup.scrollY)
+                    }, null, 8, ["element", "selected-text", "computed-styles", "placeholder", "is-exiting", "light-mode", "accent-color", "popup-style"])
+                  ],
+                  64
+                  /* STABLE_FRAGMENT */
+                )) : _createCommentVNode11("v-if", true),
+                _createCommentVNode11(" Edit annotation popup "),
+                $setup.editingAnnotation ? (_openBlock41(), _createElementBlock41(
+                  _Fragment5,
+                  { key: 3 },
+                  [
+                    _createCommentVNode11(" Edit outline "),
+                    $setup.editingAnnotation.drawingIndex == null ? (_openBlock41(), _createElementBlock41(
+                      _Fragment5,
+                      { key: 0 },
+                      [
+                        $setup.editingTargetElement && $setup._document.contains($setup.editingTargetElement) ? (_openBlock41(), _createElementBlock41(
+                          "div",
+                          {
+                            key: 0,
+                            class: _normalizeClass4([$setup.editingAnnotation.isMultiSelect ? $setup.styles.multiSelectOutline : $setup.styles.singleSelectOutline, $setup.styles.enter]),
+                            style: _normalizeStyle12({
+                              left: $setup.editingTargetElement.getBoundingClientRect().left + "px",
+                              top: $setup.editingTargetElement.getBoundingClientRect().top + "px",
+                              width: $setup.editingTargetElement.getBoundingClientRect().width + "px",
+                              height: $setup.editingTargetElement.getBoundingClientRect().height + "px",
+                              ...$setup.editingAnnotation.isMultiSelect ? {} : { borderColor: `${$setup.settings.annotationColor}99`, backgroundColor: `${$setup.settings.annotationColor}0D` }
+                            })
+                          },
+                          null,
+                          6
+                          /* CLASS, STYLE */
+                        )) : $setup.editingAnnotation.boundingBox ? (_openBlock41(), _createElementBlock41(
+                          "div",
+                          {
+                            key: 1,
+                            class: _normalizeClass4([$setup.editingAnnotation.isMultiSelect ? $setup.styles.multiSelectOutline : $setup.styles.singleSelectOutline, $setup.styles.enter]),
+                            style: _normalizeStyle12({
+                              left: $setup.editingAnnotation.boundingBox.x + "px",
+                              top: ($setup.editingAnnotation.isFixed ? $setup.editingAnnotation.boundingBox.y : $setup.editingAnnotation.boundingBox.y - $setup.scrollY) + "px",
+                              width: $setup.editingAnnotation.boundingBox.width + "px",
+                              height: $setup.editingAnnotation.boundingBox.height + "px",
+                              ...$setup.editingAnnotation.isMultiSelect ? {} : { borderColor: `${$setup.settings.annotationColor}99`, backgroundColor: `${$setup.settings.annotationColor}0D` }
+                            })
+                          },
+                          null,
+                          6
+                          /* CLASS, STYLE */
+                        )) : _createCommentVNode11("v-if", true)
+                      ],
+                      64
+                      /* STABLE_FRAGMENT */
+                    )) : _createCommentVNode11("v-if", true),
+                    _createVNode2($setup["AnnotationPopup"], {
+                      ref: "editPopupRef",
+                      element: $setup.editingAnnotation.element,
+                      "selected-text": $setup.editingAnnotation.selectedText,
+                      "computed-styles": $setup.parseComputedStylesString($setup.editingAnnotation.computedStyles),
+                      placeholder: "Edit your feedback...",
+                      "initial-value": $setup.editingAnnotation.comment,
+                      "submit-label": "Save",
+                      "on-submit": $setup.updateAnnotation,
+                      "on-cancel": $setup.cancelEditAnnotation,
+                      "on-delete": () => $setup.deleteAnnotation($setup.editingAnnotation.id),
+                      "is-exiting": $setup.editExiting,
+                      "light-mode": !$setup.isDarkMode,
+                      "accent-color": $setup.editingAnnotation.isMultiSelect ? "#34C759" : $setup.settings.annotationColor,
+                      "popup-style": $setup.getPopupStyle($setup.editingAnnotation.x, $setup.editingAnnotation.isFixed ? $setup.editingAnnotation.y : $setup.editingAnnotation.y - $setup.scrollY)
+                    }, null, 8, ["element", "selected-text", "computed-styles", "initial-value", "on-delete", "is-exiting", "light-mode", "accent-color", "popup-style"])
+                  ],
+                  64
+                  /* STABLE_FRAGMENT */
+                )) : _createCommentVNode11("v-if", true),
+                _createCommentVNode11(" Drag selection "),
+                $setup.dragSelect.isDragging.value ? (_openBlock41(), _createElementBlock41(
+                  _Fragment5,
+                  { key: 4 },
+                  [
+                    _createElementVNode41(
+                      "div",
+                      {
+                        ref: (el) => $setup.dragSelect.setDragRectEl(el),
+                        class: _normalizeClass4($setup.styles.dragSelection)
+                      },
+                      null,
+                      2
+                      /* CLASS */
+                    ),
+                    _createElementVNode41(
+                      "div",
+                      {
+                        ref: (el) => $setup.dragSelect.setHighlightsContainerEl(el),
+                        class: _normalizeClass4($setup.styles.highlightsContainer)
+                      },
+                      null,
+                      2
+                      /* CLASS */
+                    )
+                  ],
+                  64
+                  /* STABLE_FRAGMENT */
                 )) : _createCommentVNode11("v-if", true)
-              ],
-              64
-              /* STABLE_FRAGMENT */
-            )) : _createCommentVNode11("v-if", true),
-            _createCommentVNode11(" Pending marker "),
-            _createElementVNode41(
-              "div",
-              {
-                class: _normalizeClass4([$setup.styles.marker, $setup.styles.pending, $setup.pendingAnnotation.isMultiSelect ? $setup.styles.multiSelect : "", $setup.pendingExiting ? $setup.styles.exit : $setup.styles.enter]),
-                style: _normalizeStyle12({
-                  left: `${$setup.pendingAnnotation.x}%`,
-                  top: ($setup.pendingAnnotation.isFixed ? $setup.pendingAnnotation.y : $setup.pendingAnnotation.y - $setup.scrollY) + "px",
-                  backgroundColor: $setup.pendingAnnotation.isMultiSelect ? "#34C759" : $setup.settings.annotationColor
-                })
-              },
-              [
-                _createVNode2($setup["IconPlus"], { size: 12 })
               ],
               6
               /* CLASS, STYLE */
-            ),
-            _createCommentVNode11(" Pending popup "),
-            _createVNode2($setup["AnnotationPopup"], {
-              ref: "popupRef",
-              element: $setup.pendingAnnotation.element,
-              "selected-text": $setup.pendingAnnotation.selectedText,
-              "computed-styles": $setup.pendingAnnotation.computedStylesObj,
-              placeholder: $setup.pendingAnnotation.element === "Area selection" ? "What should change in this area?" : $setup.pendingAnnotation.isMultiSelect ? "Feedback for this group of elements..." : "What should change?",
-              "on-submit": $setup.addAnnotation,
-              "on-cancel": $setup.cancelAnnotation,
-              "is-exiting": $setup.pendingExiting,
-              "light-mode": !$setup.isDarkMode,
-              "accent-color": $setup.pendingAnnotation.isMultiSelect ? "#34C759" : $setup.settings.annotationColor,
-              "popup-style": $setup.getPopupStyle($setup.pendingAnnotation.x, $setup.pendingAnnotation.isFixed ? $setup.pendingAnnotation.y : $setup.pendingAnnotation.y - $setup.scrollY)
-            }, null, 8, ["element", "selected-text", "computed-styles", "placeholder", "is-exiting", "light-mode", "accent-color", "popup-style"])
-          ],
-          64
-          /* STABLE_FRAGMENT */
-        )) : _createCommentVNode11("v-if", true),
-        _createCommentVNode11(" Edit annotation popup "),
-        $setup.editingAnnotation ? (_openBlock41(), _createElementBlock41(
-          _Fragment5,
-          { key: 3 },
-          [
-            _createCommentVNode11(" Edit outline "),
-            $setup.editingAnnotation.drawingIndex == null ? (_openBlock41(), _createElementBlock41(
-              _Fragment5,
-              { key: 0 },
-              [
-                $setup.editingTargetElement && $setup._document.contains($setup.editingTargetElement) ? (_openBlock41(), _createElementBlock41(
-                  "div",
-                  {
-                    key: 0,
-                    class: _normalizeClass4([$setup.editingAnnotation.isMultiSelect ? $setup.styles.multiSelectOutline : $setup.styles.singleSelectOutline, $setup.styles.enter]),
-                    style: _normalizeStyle12({
-                      left: $setup.editingTargetElement.getBoundingClientRect().left + "px",
-                      top: $setup.editingTargetElement.getBoundingClientRect().top + "px",
-                      width: $setup.editingTargetElement.getBoundingClientRect().width + "px",
-                      height: $setup.editingTargetElement.getBoundingClientRect().height + "px",
-                      ...$setup.editingAnnotation.isMultiSelect ? {} : { borderColor: `${$setup.settings.annotationColor}99`, backgroundColor: `${$setup.settings.annotationColor}0D` }
-                    })
-                  },
-                  null,
-                  6
-                  /* CLASS, STYLE */
-                )) : $setup.editingAnnotation.boundingBox ? (_openBlock41(), _createElementBlock41(
-                  "div",
-                  {
-                    key: 1,
-                    class: _normalizeClass4([$setup.editingAnnotation.isMultiSelect ? $setup.styles.multiSelectOutline : $setup.styles.singleSelectOutline, $setup.styles.enter]),
-                    style: _normalizeStyle12({
-                      left: $setup.editingAnnotation.boundingBox.x + "px",
-                      top: ($setup.editingAnnotation.isFixed ? $setup.editingAnnotation.boundingBox.y : $setup.editingAnnotation.boundingBox.y - $setup.scrollY) + "px",
-                      width: $setup.editingAnnotation.boundingBox.width + "px",
-                      height: $setup.editingAnnotation.boundingBox.height + "px",
-                      ...$setup.editingAnnotation.isMultiSelect ? {} : { borderColor: `${$setup.settings.annotationColor}99`, backgroundColor: `${$setup.settings.annotationColor}0D` }
-                    })
-                  },
-                  null,
-                  6
-                  /* CLASS, STYLE */
-                )) : _createCommentVNode11("v-if", true)
-              ],
-              64
-              /* STABLE_FRAGMENT */
-            )) : _createCommentVNode11("v-if", true),
-            _createVNode2($setup["AnnotationPopup"], {
-              ref: "editPopupRef",
-              element: $setup.editingAnnotation.element,
-              "selected-text": $setup.editingAnnotation.selectedText,
-              "computed-styles": $setup.parseComputedStylesString($setup.editingAnnotation.computedStyles),
-              placeholder: "Edit your feedback...",
-              "initial-value": $setup.editingAnnotation.comment,
-              "submit-label": "Save",
-              "on-submit": $setup.updateAnnotation,
-              "on-cancel": $setup.cancelEditAnnotation,
-              "on-delete": () => $setup.deleteAnnotation($setup.editingAnnotation.id),
-              "is-exiting": $setup.editExiting,
-              "light-mode": !$setup.isDarkMode,
-              "accent-color": $setup.editingAnnotation.isMultiSelect ? "#34C759" : $setup.settings.annotationColor,
-              "popup-style": $setup.getPopupStyle($setup.editingAnnotation.x, $setup.editingAnnotation.isFixed ? $setup.editingAnnotation.y : $setup.editingAnnotation.y - $setup.scrollY)
-            }, null, 8, ["element", "selected-text", "computed-styles", "initial-value", "on-delete", "is-exiting", "light-mode", "accent-color", "popup-style"])
-          ],
-          64
-          /* STABLE_FRAGMENT */
-        )) : _createCommentVNode11("v-if", true),
-        _createCommentVNode11(" Drag selection "),
-        $setup.dragSelect.isDragging.value ? (_openBlock41(), _createElementBlock41(
-          _Fragment5,
-          { key: 4 },
-          [
-            _createElementVNode41(
-              "div",
-              {
-                ref: (el) => $setup.dragSelect.setDragRectEl(el),
-                class: _normalizeClass4($setup.styles.dragSelection)
-              },
-              null,
-              2
-              /* CLASS */
-            ),
-            _createElementVNode41(
-              "div",
-              {
-                ref: (el) => $setup.dragSelect.setHighlightsContainerEl(el),
-                class: _normalizeClass4($setup.styles.highlightsContainer)
-              },
-              null,
-              2
-              /* CLASS */
-            )
+            )) : _createCommentVNode11("v-if", true)
           ],
           64
           /* STABLE_FRAGMENT */
         )) : _createCommentVNode11("v-if", true)
       ],
-      6
-      /* CLASS, STYLE */
-    )) : _createCommentVNode11("v-if", true)
+      512
+      /* NEED_PATCH */
+    )
   ]);
 }
 _sfc_main41.render = render41;
