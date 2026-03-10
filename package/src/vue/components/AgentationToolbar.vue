@@ -1508,9 +1508,9 @@ function handleToolbarDragMove(e: MouseEvent) {
     let newX = dragStartPos.value.toolbarX + deltaX
     let newY = dragStartPos.value.toolbarY + deltaY
     const padding = 20
-    const wrapperWidth = 297
+    const wrapperWidth = 335
     const toolbarHeight = 44
-    const contentWidth = isActive.value ? (connectionStatus.value === 'connected' ? 297 : 257) : 44
+    const contentWidth = isActive.value ? (connectionStatus.value === 'connected' ? 335 : 295) : 44
     const contentOffset = wrapperWidth - contentWidth
     const minX = padding - contentOffset
     const maxX = window.innerWidth - padding - wrapperWidth
@@ -1755,9 +1755,9 @@ watch(
 function constrainPosition() {
   if (!toolbarPosition.value) return
   const padding = 20
-  const wrapperWidth = 297
+  const wrapperWidth = 335
   const toolbarHeight = 44
-  const contentWidth = isActive.value ? (connectionStatus.value === 'connected' ? 297 : 257) : 44
+  const contentWidth = isActive.value ? (connectionStatus.value === 'connected' ? 335 : 295) : 44
   const contentOffset = wrapperWidth - contentWidth
   const minX = padding - contentOffset
   const maxX = window.innerWidth - padding - wrapperWidth
