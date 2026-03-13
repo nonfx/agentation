@@ -1,4 +1,5 @@
 node_modules/.claude/settings.local.json
 node_modules
+dist
 mcp/dist
 .DS_Store
