@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { originalSetTimeout } from '../../core/utils/freeze-animations'
+import { originalSetTimeout } from '../../utils/freeze-animations'
 import ToolbarTooltip from './ToolbarTooltip.vue'
 import {
   IconHelp,
@@ -9,7 +9,7 @@ import {
   IconMoon,
   IconChevronLeft,
 } from './icons'
-import styles from '../../core/styles/page-toolbar.module.scss'
+import styles from '../../styles/page-toolbar.module.scss'
 import {
   OUTPUT_DETAIL_OPTIONS,
   COLOR_OPTIONS,

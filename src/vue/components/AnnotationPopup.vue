@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
-import styles from '../../core/styles/annotation-popup.module.scss'
-import { originalSetTimeout } from '../../core/utils/freeze-animations'
+import styles from '../../styles/annotation-popup.module.scss'
+import { originalSetTimeout } from '../../utils/freeze-animations'
 
 // =============================================================================
 // Props

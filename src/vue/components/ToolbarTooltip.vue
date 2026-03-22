@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onUnmounted, Teleport } from 'vue'
-import { originalSetTimeout } from '../../core/utils/freeze-animations'
+import { originalSetTimeout } from '../../utils/freeze-animations'
 
 const props = defineProps<{
   content: string

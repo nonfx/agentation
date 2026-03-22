@@ -61,13 +61,13 @@ export {
   isInShadowDOM,
   getShadowHost,
   closestCrossingShadow,
-} from "./core/utils/element-identification";
+} from "./utils/element-identification";
 
 export {
   loadAnnotations,
   saveAnnotations,
   getStorageKey,
-} from "./core/utils/storage";
+} from "./utils/storage";
 
 // Types
-export type { Annotation } from "./core/types";
+export type { Annotation } from "./types";

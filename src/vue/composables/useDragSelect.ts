@@ -2,8 +2,8 @@ import { ref, type Ref } from 'vue'
 import {
   identifyElement,
   closestCrossingShadow,
-} from '../../core/utils/element-identification'
-import styles from '../../core/styles/page-toolbar.module.scss'
+} from '../../utils/element-identification'
+import styles from '../../styles/page-toolbar.module.scss'
 
 export function useDragSelect() {
   const isDragging = ref(false)

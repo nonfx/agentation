@@ -3,14 +3,14 @@ import {
   saveAnnotations,
   saveAnnotationsWithSyncMarker,
   getStorageKey,
-} from '../../core/utils/storage'
+} from '../../utils/storage'
 import {
   syncAnnotation,
   updateAnnotation as updateAnnotationOnServer,
   deleteAnnotation as deleteAnnotationFromServer,
-} from '../../core/utils/sync'
-import { originalSetTimeout } from '../../core/utils/freeze-animations'
-import type { Annotation } from '../../core/types'
+} from '../../utils/sync'
+import { originalSetTimeout } from '../../utils/freeze-animations'
+import type { Annotation } from '../../types'
 
 type DrawStroke = {
   id: string

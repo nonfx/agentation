@@ -10,7 +10,7 @@ import {
   Teleport,
 } from 'vue'
 
-import type { Annotation } from '../../core/types'
+import type { Annotation } from '../../types'
 import {
   identifyElement,
   getNearbyText,
@@ -22,23 +22,23 @@ import {
   getAccessibilityInfo,
   getNearbyElements,
   closestCrossingShadow,
-} from '../../core/utils/element-identification'
+} from '../../utils/element-identification'
 import {
   loadAnnotations,
   saveAnnotations,
   loadToolbarHidden,
   saveToolbarHidden,
-} from '../../core/utils/storage'
+} from '../../utils/storage'
 import {
   freeze as freezeAll,
   unfreeze as unfreezeAll,
   originalSetTimeout,
   originalSetInterval,
-} from '../../core/utils/freeze-animations'
+} from '../../utils/freeze-animations'
 import { getVueComponentName } from '../utils/vue-detection'
 import { getSourceLocation } from '../utils/vue-source-location'
 
-import styles from '../../core/styles/page-toolbar.module.scss'
+import styles from '../../styles/page-toolbar.module.scss'
 
 // Sub-components
 import AnnotationPopup from './AnnotationPopup.vue'
@@ -479,12 +479,12 @@ function getSourceFileForElement(element: HTMLElement): string | undefined {
 import {
   saveAnnotationsWithSyncMarker,
   getStorageKey,
-} from '../../core/utils/storage'
+} from '../../utils/storage'
 import {
   syncAnnotation,
   updateAnnotation as updateAnnotationOnServer,
   deleteAnnotation as deleteAnnotationFromServer,
-} from '../../core/utils/sync'
+} from '../../utils/sync'
 
 function persistAnnotations() {
   if (mounted.value && annotations.value.length > 0) {

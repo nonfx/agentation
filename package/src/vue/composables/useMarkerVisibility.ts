@@ -1,6 +1,6 @@
 import { ref, watch, type Ref } from 'vue'
-import { originalSetTimeout } from '../../core/utils/freeze-animations'
-import type { Annotation } from '../../core/types'
+import { originalSetTimeout } from '../../utils/freeze-animations'
+import type { Annotation } from '../../types'
 
 export function useMarkerVisibility(options: {
   isActive: Ref<boolean>

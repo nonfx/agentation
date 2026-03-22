@@ -1,7 +1,7 @@
 import { ref, reactive, watch, onMounted } from 'vue'
 import {
   originalSetTimeout,
-} from '../../core/utils/freeze-animations'
+} from '../../utils/freeze-animations'
 
 // =============================================================================
 // Types

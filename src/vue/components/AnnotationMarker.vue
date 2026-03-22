@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { IconXmark, IconEdit } from './icons'
-import styles from '../../core/styles/page-toolbar.module.scss'
-import type { Annotation } from '../../core/types'
+import styles from '../../styles/page-toolbar.module.scss'
+import type { Annotation } from '../../types'
 
 const props = defineProps<{
   annotation: Annotation

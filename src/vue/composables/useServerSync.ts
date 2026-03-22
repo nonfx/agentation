@@ -4,7 +4,7 @@ import {
   getSession,
   syncAnnotation,
   deleteAnnotation as deleteAnnotationFromServer,
-} from '../../core/utils/sync'
+} from '../../utils/sync'
 import {
   loadAnnotations,
   loadAllAnnotations,
@@ -12,12 +12,12 @@ import {
   loadSessionId,
   clearSessionId,
   saveAnnotationsWithSyncMarker,
-} from '../../core/utils/storage'
+} from '../../utils/storage'
 import {
   originalSetInterval,
   originalSetTimeout,
-} from '../../core/utils/freeze-animations'
-import type { Annotation } from '../../core/types'
+} from '../../utils/freeze-animations'
+import type { Annotation } from '../../types'
 
 export function useServerSync(options: {
   endpoint?: string

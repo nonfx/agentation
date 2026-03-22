@@ -2,9 +2,9 @@ import { type Ref } from 'vue'
 import {
   identifyElement,
   closestCrossingShadow,
-} from '../../core/utils/element-identification'
-import { originalSetTimeout } from '../../core/utils/freeze-animations'
-import type { Annotation } from '../../core/types'
+} from '../../utils/element-identification'
+import { originalSetTimeout } from '../../utils/freeze-animations'
+import type { Annotation } from '../../types'
 import type { OutputDetailLevel, ReactComponentMode } from './useToolbarSettings'
 import type { DrawStroke } from './useDrawing'
 

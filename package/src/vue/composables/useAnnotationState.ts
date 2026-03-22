@@ -1,6 +1,6 @@
 import { ref } from 'vue'
-import { originalSetTimeout } from '../../core/utils/freeze-animations'
-import type { Annotation } from '../../core/types'
+import { originalSetTimeout } from '../../utils/freeze-animations'
+import type { Annotation } from '../../types'
 
 /**
  * Pending annotation shape (data collected from click/draw/drag
