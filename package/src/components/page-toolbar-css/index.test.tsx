@@ -8,16 +8,30 @@ const mockClipboard = {
   writeText: vi.fn().mockResolvedValue(undefined),
 };
 
+const originalNavigator = globalThis.navigator;
+
+// Mock localStorage for jsdom compatibility
+const localStorageStore: Record<string, string> = {};
+const mockLocalStorage = {
+  getItem: vi.fn((key: string) => localStorageStore[key] ?? null),
+  setItem: vi.fn((key: string, value: string) => { localStorageStore[key] = value; }),
+  removeItem: vi.fn((key: string) => { delete localStorageStore[key]; }),
+  clear: vi.fn(() => { for (const key in localStorageStore) delete localStorageStore[key]; }),
+  get length() { return Object.keys(localStorageStore).length; },
+  key: vi.fn((index: number) => Object.keys(localStorageStore)[index] ?? null),
+};
+
 beforeEach(() => {
-  vi.stubGlobal("navigator", {
+  globalThis.navigator = {
     clipboard: mockClipboard,
     userAgent: "test-agent",
-  });
+  } as unknown as Navigator;
+  Object.defineProperty(globalThis, "localStorage", { value: mockLocalStorage, writable: true, configurable: true });
   mockClipboard.writeText.mockClear();
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
+  globalThis.navigator = originalNavigator;
 });
 
 describe("PageFeedbackToolbarCSS", () => {
