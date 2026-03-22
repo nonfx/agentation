@@ -63,23 +63,17 @@ jobs:
           BRANCH="sync/upstream-$(date +%Y%m%d)"
           git checkout -b "$BRANCH"
 
-          # Attempt merge — conflicts are expected (Vue adaptations vs React updates)
+          # Merge upstream — should be clean since fork only adds src/vue/
           if git merge upstream/main --no-edit; then
             echo "status=clean" >> "$GITHUB_OUTPUT"
           else
-            # Auto-resolve: keep ours for Vue-specific files, take theirs for shared core
-            # Vue files — always keep our version
-            git checkout --ours -- src/vue/ package/src/vue/ || true
-            git checkout --ours -- vue-example/ || true
-
-            # Check if there are still conflicts
+            # Check for conflicts
             CONFLICTS=$(git diff --name-only --diff-filter=U | wc -l | tr -d ' ')
             if [ "$CONFLICTS" -gt "0" ]; then
               echo "status=conflicts" >> "$GITHUB_OUTPUT"
               echo "conflict_files<<EOF" >> "$GITHUB_OUTPUT"
               git diff --name-only --diff-filter=U >> "$GITHUB_OUTPUT"
               echo "EOF" >> "$GITHUB_OUTPUT"
-              # Stage what we can, leave conflicts for manual review
               git add -A
             else
               git add -A
