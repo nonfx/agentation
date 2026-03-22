@@ -1,0 +1,148 @@
+name: Sync upstream agentation
+
+# Runs daily and on manual trigger.
+# Checks benjitaylor/agentation for new commits, opens a PR on nonfx/agentation
+# with the upstream changes for review + Vue adaptation.
+
+on:
+  schedule:
+    - cron: "0 9 * * 1" # Weekly on Monday 9am UTC
+  workflow_dispatch: # Manual trigger
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/benjitaylor/agentation.git || true
+          git fetch upstream main
+
+      - name: Check for new upstream commits
+        id: check
+        run: |
+          BEHIND=$(git rev-list --count HEAD..upstream/main)
+          echo "behind=$BEHIND" >> "$GITHUB_OUTPUT"
+          echo "Upstream is $BEHIND commits ahead"
+
+          if [ "$BEHIND" -eq "0" ]; then
+            echo "Already up to date with upstream"
+          else
+            LATEST_TAG=$(git -C . tag -l 'v*' --sort=-v:refname | head -1)
+            UPSTREAM_TAG=$(git tag -l 'v*' --sort=-v:refname --merged upstream/main | head -1)
+            echo "latest_fork_tag=$LATEST_TAG" >> "$GITHUB_OUTPUT"
+            echo "latest_upstream_tag=$UPSTREAM_TAG" >> "$GITHUB_OUTPUT"
+            echo "Fork: $LATEST_TAG, Upstream: $UPSTREAM_TAG"
+
+            # Get commit summary for PR body
+            git log --oneline HEAD..upstream/main > /tmp/upstream-commits.txt
+            echo "commit_summary<<EOF" >> "$GITHUB_OUTPUT"
+            cat /tmp/upstream-commits.txt >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create sync branch and merge upstream
+        if: steps.check.outputs.behind != '0'
+        id: merge
+        run: |
+          BRANCH="sync/upstream-$(date +%Y%m%d)"
+          git checkout -b "$BRANCH"
+
+          # Attempt merge — conflicts are expected (Vue adaptations vs React updates)
+          if git merge upstream/main --no-edit; then
+            echo "status=clean" >> "$GITHUB_OUTPUT"
+          else
+            # Auto-resolve: keep ours for Vue-specific files, take theirs for shared core
+            # Vue files — always keep our version
+            git checkout --ours -- src/vue/ package/src/vue/ || true
+            git checkout --ours -- vue-example/ || true
+
+            # Check if there are still conflicts
+            CONFLICTS=$(git diff --name-only --diff-filter=U | wc -l | tr -d ' ')
+            if [ "$CONFLICTS" -gt "0" ]; then
+              echo "status=conflicts" >> "$GITHUB_OUTPUT"
+              echo "conflict_files<<EOF" >> "$GITHUB_OUTPUT"
+              git diff --name-only --diff-filter=U >> "$GITHUB_OUTPUT"
+              echo "EOF" >> "$GITHUB_OUTPUT"
+              # Stage what we can, leave conflicts for manual review
+              git add -A
+            else
+              git add -A
+              git commit --no-edit
+              echo "status=resolved" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          git push origin "$BRANCH" --force
+
+      - name: Create PR
+        if: steps.check.outputs.behind != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TITLE="sync: upstream agentation (${{ steps.check.outputs.behind }} commits)"
+          STATUS="${{ steps.merge.outputs.status }}"
+
+          if [ "$STATUS" = "conflicts" ]; then
+            CONFLICT_NOTE="## Merge Conflicts
+
+          The following files have conflicts that need manual resolution:
+
+          \`\`\`
+          ${{ steps.merge.outputs.conflict_files }}
+          \`\`\`
+
+          After resolving, update the Vue components in \`src/vue/\` to match any new React patterns."
+          else
+            CONFLICT_NOTE="## Merge Status
+
+          Merged cleanly. Review the diff to ensure Vue components still match the React equivalents."
+          fi
+
+          BODY="$(cat <<PREOF
+          Automated sync from [benjitaylor/agentation](https://github.com/benjitaylor/agentation).
+
+          **${{ steps.check.outputs.behind }} new upstream commits** since last sync.
+
+          ## Upstream Changes
+
+          \`\`\`
+          ${{ steps.check.outputs.commit_summary }}
+          \`\`\`
+
+          $CONFLICT_NOTE
+
+          ## Review Checklist
+
+          - [ ] Core types/utils changes ported to Vue equivalents
+          - [ ] New React components have Vue counterparts (if applicable)
+          - [ ] MCP server changes are compatible
+          - [ ] Build passes: \`pnpm build\`
+          - [ ] Toolbar renders correctly in Stance dev environment
+          PREOF
+          )"
+
+          # Check if PR already exists
+          EXISTING=$(gh pr list --head "${{ steps.merge.outputs.branch }}" --json number --jq '.[0].number' 2>/dev/null || echo "")
+
+          if [ -n "$EXISTING" ]; then
+            echo "PR #$EXISTING already exists, updating"
+            gh pr edit "$EXISTING" --body "$BODY"
+          else
+            gh pr create \
+              --title "$TITLE" \
+              --body "$BODY" \
+              --base main \
+              --head "${{ steps.merge.outputs.branch }}"
+          fi
