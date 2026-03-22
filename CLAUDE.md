@@ -17,6 +17,35 @@ pnpm dev        # Run both package watch + website dev server
 pnpm build      # Build package only
 ```
 
+## Fork Structure
+
+This is a fork of [benjitaylor/agentation](https://github.com/benjitaylor/agentation). The upstream directory layout is preserved exactly — **NEVER move or rename upstream files**. The fork only adds Vue-specific code.
+
+```
+package/src/
+  components/    ← upstream React (UNTOUCHED)
+  utils/         ← upstream utils (UNTOUCHED)
+  types.ts       ← upstream types (UNTOUCHED)
+  index.ts       ← upstream entry (UNTOUCHED)
+  vue/           ← fork addition: Vue port
+  styles/        ← fork addition: SCSS modules for Vue components
+  vue.ts         ← fork addition: Vue entry point
+  vue-dts.ts     ← fork addition: Vue type declarations
+```
+
+**Rule:** Only add files to `src/vue/` and `src/styles/`. Everything else belongs to upstream.
+
+## Upstream Sync
+
+A GitHub Action (`.github/workflows/sync-upstream.yml`) runs weekly to check for new commits on `benjitaylor/agentation` and opens a PR if updates are found.
+
+**Manual sync:**
+```bash
+git fetch upstream main && git merge upstream/main
+```
+
+Because the fork preserves upstream's layout, merges are conflict-free for all upstream-owned files.
+
 ## Important
 
 The npm package is public. Changes to `package/src/` affect all users.

@@ -13,11 +13,26 @@ This is the publishable npm package. Changes here affect everyone who installs `
 - `dist/` folder (compiled from `src/`)
 - `package.json`, `README.md`, `LICENSE`
 
+## Directory Layout
+
+This is a fork of upstream `benjitaylor/agentation`. The source layout:
+
+- `src/components/` — upstream React components (DO NOT MODIFY)
+- `src/utils/` — upstream utilities (DO NOT MODIFY)
+- `src/types.ts` — upstream types (DO NOT MODIFY)
+- `src/index.ts` — upstream entry point (DO NOT MODIFY)
+- `src/vue/` — fork-only Vue port (our code)
+- `src/styles/` — fork-only SCSS modules for Vue components (our code)
+- `src/vue.ts` — fork-only Vue entry point
+
+**Note:** `src/core/` and `src/react/` no longer exist — those were the old fork directories that have been removed to restore upstream's layout.
+
 ## Before Modifying `src/`
 
 - Consider: Is this a breaking change?
 - Consider: Does this affect the API surface?
 - Consider: Will existing users' code still work?
+- Consider: Are you modifying an upstream file? If so, DON'T — only modify files in `src/vue/` or `src/styles/`.
 
 ## Main Export
 
@@ -25,7 +40,7 @@ This is the publishable npm package. Changes here affect everyone who installs `
 import { Agentation } from 'agentation';
 ```
 
-No external runtime dependencies beyond React.
+No external runtime dependencies beyond React (or Vue for the Vue export).
 
 ## Programmatic API
 
