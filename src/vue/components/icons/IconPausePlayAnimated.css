@@ -1,0 +1,3 @@
+.pause-bar, .play-triangle {
+  transition: opacity 0.15s ease;
+}

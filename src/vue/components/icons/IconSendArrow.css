@@ -1,0 +1,3 @@
+.send-arrow-icon, .send-check-icon, .send-error-icon {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}

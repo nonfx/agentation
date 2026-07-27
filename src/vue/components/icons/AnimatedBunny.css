@@ -1,0 +1,94 @@
+@keyframes bunnyEnterEar {
+  0% { opacity: 0; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes bunnyEnterFace {
+  0% { opacity: 0; transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes bunnyEnterEye {
+  0% { opacity: 0; transform: scale(0.5); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes leftEyeLook {
+  0%, 8% { transform: translate(0, 0); }
+  10%, 18% { transform: translate(1.5px, 0); }
+  20%, 22% { transform: translate(1.5px, 0) scaleY(0.1); }
+  24%, 32% { transform: translate(1.5px, 0); }
+  35%, 48% { transform: translate(-0.8px, -0.6px); }
+  52%, 54% { transform: translate(0, 0) scaleY(0.1); }
+  56%, 68% { transform: translate(0, 0); }
+  72%, 82% { transform: translate(-0.5px, 0.5px); }
+  85%, 100% { transform: translate(0, 0); }
+}
+@keyframes rightEyeLook {
+  0%, 8% { transform: translate(0, 0); }
+  10%, 18% { transform: translate(0.8px, 0); }
+  20%, 22% { transform: translate(0.8px, 0) scaleY(0.1); }
+  24%, 32% { transform: translate(0.8px, 0); }
+  35%, 48% { transform: translate(-1.5px, -0.6px); }
+  52%, 54% { transform: translate(0, 0) scaleY(0.1); }
+  56%, 68% { transform: translate(0, 0); }
+  72%, 82% { transform: translate(-1.2px, 0.5px); }
+  85%, 100% { transform: translate(0, 0); }
+}
+@keyframes leftEarTwitch {
+  0%, 9% { transform: rotate(0deg); }
+  12% { transform: rotate(-8deg); }
+  16%, 34% { transform: rotate(0deg); }
+  38% { transform: rotate(-12deg); }
+  42% { transform: rotate(-6deg); }
+  48%, 100% { transform: rotate(0deg); }
+}
+@keyframes rightEarTwitch {
+  0%, 9% { transform: rotate(0deg); }
+  12% { transform: rotate(6deg); }
+  16%, 34% { transform: rotate(0deg); }
+  38% { transform: rotate(10deg); }
+  42% { transform: rotate(4deg); }
+  48%, 71% { transform: rotate(0deg); }
+  74% { transform: rotate(8deg); }
+  78%, 100% { transform: rotate(0deg); }
+}
+.bunny-eye-left {
+  opacity: 0;
+  animation: bunnyEnterEye 0.3s ease-out 0.35s forwards, leftEyeLook 5s ease-in-out 0.65s infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+.bunny-eye-right {
+  opacity: 0;
+  animation: bunnyEnterEye 0.3s ease-out 0.4s forwards, rightEyeLook 5s ease-in-out 0.7s infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+.bunny-ear-left {
+  opacity: 0;
+  animation: bunnyEnterEar 0.3s ease-out 0.1s forwards, leftEarTwitch 5s ease-in-out 0.4s infinite;
+  transform-origin: bottom center;
+  transform-box: fill-box;
+}
+.bunny-ear-right {
+  opacity: 0;
+  animation: bunnyEnterEar 0.3s ease-out 0.15s forwards, rightEarTwitch 5s ease-in-out 0.45s infinite;
+  transform-origin: bottom center;
+  transform-box: fill-box;
+}
+.bunny-face {
+  opacity: 0;
+  animation: bunnyEnterFace 0.3s ease-out 0.25s forwards;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+svg:hover .bunny-eye-left,
+svg:hover .bunny-eye-right {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.bunny-happy-face {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+svg:hover .bunny-happy-face {
+  opacity: 1;
+}
